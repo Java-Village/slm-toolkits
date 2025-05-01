@@ -1,0 +1,12 @@
+{
+    "lm_api_url": "http://localhost:1234/v1/chat/completions",
+    "provider": "local",         
+    "api_key": "",                   
+    "model": "grok-3-mini-beta",
+    "request_options": {
+      "temperature": 0.7,
+      "max_tokens": 1024,
+      "stream": false
+    }
+  }
+  
