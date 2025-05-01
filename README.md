@@ -1,8 +1,3 @@
-
-
----
-
-```markdown
 # Local-LM Proxy
 
 A modular and lightweight FastAPI-based proxy for serving OpenAI-compatible `/v1/chat/completions` requests to a locally hosted or third-party Large Language Model (LLM) backend. Designed to facilitate integration, model switching, and prompt management without altering core logic.
@@ -151,4 +146,3 @@ prompt = settings.prompts["drone-task"]
 ## License
 
 This project is licensed under the MIT License.
-```
