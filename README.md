@@ -1,3 +1,7 @@
+
+
+---
+
 ```markdown
 # Local-LM Proxy
 
@@ -21,20 +25,19 @@ This project enables:
 - Lightweight and self-contained (no external databases or queues)
 
 ## Project Structure
-```
 
+```
 slm-toolkits/
 ├── app/
-│ ├── main.py # FastAPI app with core routing and logic
-│ └── settings.py # Configuration loader and cache
+│   ├── main.py            # FastAPI app with core routing and logic
+│   └── settings.py        # Configuration loader and cache
 ├── config/
-│ ├── configure.json # LLM provider and parameters
-│ └── system-prompt.json # Task-specific and language-based system prompts
-├── requirements.txt # Python dependencies
-├── .gitignore # Common exclusions
-└── README.md # Project documentation
-
-````
+│   ├── configure.json     # LLM provider and parameters
+│   └── system-prompt.json # Task-specific and language-based system prompts
+├── requirements.txt       # Python dependencies
+├── .gitignore             # Common exclusions
+└── README.md              # Project documentation
+```
 
 ## Configuration
 
@@ -54,7 +57,7 @@ Defines the upstream LLM service and related parameters:
     "stream": false
   }
 }
-````
+```
 
 ### `config/system-prompt.json`
 
@@ -148,7 +151,4 @@ prompt = settings.prompts["drone-task"]
 ## License
 
 This project is licensed under the MIT License.
-
-```
-
 ```
