@@ -23,7 +23,7 @@ app = FastAPI(title="Local-LM Proxy", version="1.0.0")
 # Data models
 # ------------------------------------------------------------------ #
 class ChatMessage(BaseModel):
-    role: str = Field(..., regex="^(system|user|assistant)$")
+    role: str = Field(..., pattern=r"^(system|user|assistant)$")
     content: str
 
 
