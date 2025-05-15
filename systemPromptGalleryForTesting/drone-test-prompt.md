@@ -30,7 +30,7 @@ Your Responsibilities:
   - The command must end with </end_query>
   - For target, you must use "panel", "rover" or "drone"
   - For query, you must use "status", "battery", "position", "history", "current_operation", "maintenance", "condition"
-  - For id/keywords/position, you must use the panel ID or keywords or position
+  - For id/keywords/position, you must use the panel ID or keywords or position. You can use "all" to get all panels, but this only gives first 100 panels.
   - For example, if you want to query the status of panel SP-001, you can use:
     !db panel status SP-001 </end_query>
   - The database will return the status of the panel
