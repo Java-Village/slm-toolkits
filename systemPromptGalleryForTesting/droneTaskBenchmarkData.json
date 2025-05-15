@@ -1,0 +1,184 @@
+{
+  "test_id": "TC-RAND-001",
+  "description": "Cleaning request on a dirty panel with no recent cleaning in last 7 days.",
+  "user_input": "Please clean panel P-002.",
+  "environment_data": {
+    "cluster_id": "CL-001",
+    "location": { "x": 3, "y": 3 },
+    "panels": [
+      {
+        "panel_id": "P-002",
+        "status": "dirty",
+        "latest_status_time": "2025-05-13T15:30:00Z",
+        "most_recent_repair": "2025-04-10T10:00:00Z",
+        "offset": { "x": 2, "y": 2 },
+        "history": [
+          {
+            "type": "inspection",
+            "date": "2025-05-14",
+            "result": "dust buildup"
+          }
+        ]
+      }
+    ]
+  },
+  "tasklist": {
+    "drones": [
+      {
+        "id": "drone1",
+        "status": "available",
+        "current_operation": "idle"
+      }
+    ]
+  },
+  "expected_output": {
+    "REASON": "Panel P-002 is marked dirty as of 2025-05-13 with visible dust buildup. No cleaning recorded in the past 7 days. Position calculated from cluster base (3,3) + offset (2,2).",
+    "TASK": "!assign(drone1, \"clean\", \"P-002\", x=5, y=5, z=0) </commend_end>"
+  }
+}
+
+
+[
+  {
+    "test_id": "TC-RAND-001",
+    "description": "Cleaning request on a dirty panel with no recent cleaning in last 7 days.",
+    "user_input": "Please clean panel P-002.",
+    "environment_data": {
+      "cluster_id": "CL-001",
+      "location": { "x": 3, "y": 3 },
+      "panels": [
+        {
+          "panel_id": "P-002",
+          "status": "dirty",
+          "latest_status_time": "2025-05-14T15:30:00Z",
+          "most_recent_repair": "2025-04-10T10:00:00Z",
+          "offset": { "x": 2, "y": 2 },
+          "history": [
+            {
+              "type": "inspection",
+              "date": "2025-05-14",
+              "result": "dust buildup"
+            }
+          ]
+        }
+      ]
+    },
+    "tasklist": {
+      "drones": [
+        {
+          "id": "drone1",
+          "status": "available",
+          "current_operation": "idle"
+        }
+      ]
+    },
+    "expected_output": {
+      "REASON": "Panel P-002 is marked dirty as of 2025-05-14 with visible dust buildup. No cleaning recorded in the past 7 days. Position calculated from cluster base (3,3) + offset (2,2).",
+      "TASK": "!assign(drone1, \"clean\", \"P-002\", x=5, y=5, z=0) </commend_end>"
+    }
+  },
+  {
+    "test_id": "TC-RAND-002",
+    "description": "No cleaning needed for a recently cleaned panel.",
+    "user_input": "Can you clean P-001?",
+    "environment_data": {
+      "cluster_id": "CL-001",
+      "location": { "x": 3, "y": 3 },
+      "panels": [
+        {
+          "panel_id": "P-001",
+          "status": "clean",
+          "latest_status_time": "2025-05-15T09:00:00Z",
+          "most_recent_repair": "2025-04-30T13:45:00Z",
+          "offset": { "x": -2, "y": 2 },
+          "history": [
+            {
+              "type": "repair",
+              "date": "2025-04-30",
+              "action": "replaced connector"
+            },
+            {
+              "type": "inspection",
+              "date": "2025-05-10",
+              "result": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    "tasklist": {
+      "drones": [
+        {
+          "id": "drone2",
+          "status": "available",
+          "current_operation": "idle"
+        }
+      ]
+    },
+    "expected_output": {
+      "REASON": "Panel P-001 is already clean as of 2025-05-15. No cleaning action required.",
+      "NO_ACTION_REQUIRED": true
+    }
+  },
+  {
+    "test_id": "TC-RAND-003",
+    "description": "Inspection not needed due to recent inspection within 24h.",
+    "user_input": "Inspect P-004 now.",
+    "environment_data": {
+      "cluster_id": "CL-001",
+      "location": { "x": 3, "y": 3 },
+      "panels": [
+        {
+          "panel_id": "P-004",
+          "status": "dirty",
+          "latest_status_time": "2025-05-15T07:00:00Z",
+          "most_recent_repair": "2025-01-10T12:00:00Z",
+          "offset": { "x": 2, "y": -2 },
+          "history": [
+            {
+              "type": "inspection",
+              "date": "2025-05-14",
+              "result": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    "tasklist": {
+      "drones": [
+        {
+          "id": "drone3",
+          "status": "available",
+          "current_operation": "idle"
+        }
+      ]
+    },
+    "expected_output": {
+      "REASON": "Panel P-004 was inspected on 2025-05-14, within the last 24 hours. No need for re-inspection.",
+      "NO_ACTION_REQUIRED": true
+    }
+  },
+  {
+    "test_id": "TC-RAND-004",
+    "description": "Invalid request due to unknown panel ID.",
+    "user_input": "Clean panel P-999 immediately.",
+    "environment_data": {
+      "cluster_id": "CL-001",
+      "location": { "x": 3, "y": 3 },
+      "panels": []
+    },
+    "tasklist": {
+      "drones": [
+        {
+          "id": "drone4",
+          "status": "available",
+          "current_operation": "idle"
+        }
+      ]
+    },
+    "expected_output": {
+      "REASON": "Panel ID P-999 does not exist in the current cluster or dataset.",
+      "ERROR": "Invalid or unknown panel ID"
+    }
+  }
+]
