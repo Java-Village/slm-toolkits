@@ -143,6 +143,12 @@ settings = get_settings()
 prompt = settings.prompts["drone-task"]
 ```
 
+## TODO:
+
+- [ ] Add a test-coordinator to test the toolkit
+- [ ] Finish the prompt benchmark dataset and put it in to ./slm-toolkits/prompt-benchmark/
+- [ ] Finish the auto prompt benchmark script
+
 ## License
 
 This project is licensed under the MIT License.
