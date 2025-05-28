@@ -1,56 +1,25 @@
-# Coordinate Server Technical Specification
+# Coordinate Server System Specification
 
-## Overview
-
-The Coordinate Server acts as a middleware between the LLM (Large Language Model) and the system's core components (Database, Drones, Rovers). It processes structured JSON commands from the LLM and executes corresponding actions.
-
-## System Architecture
+## System Components Interaction
 
 ```mermaid
-graph LR
-    SLM --> CoordinateServer
-    CoordinateServer --> Database
-    CoordinateServer --> Drones
-    CoordinateServer --> Rovers
-    Frontend --> CoordinateServer
-    CoordinateServer --> Frontend
+sequenceDiagram
+    participant Frontend
+    participant CoordinateServer
+    participant LLM
+    participant Database
+
+    Frontend->>CoordinateServer: POST /api/command
+    CoordinateServer->>LLM: Forward command
+    LLM->>Database: Query data
+    Database-->>LLM: Return data
+    LLM-->>CoordinateServer: Structured response
+    CoordinateServer-->>Frontend: Processed result
 ```
 
-## API Endpoints
+## 1. LLM Command Types
 
-### 1. Command Processing Endpoint
-
-```
-POST /api/process-command
-Content-Type: application/json
-```
-
-#### Request Body Structure
-
-```json
-{
-    "reason": "string",
-    "task": {
-        "drone_id": "string",
-        "action": "string",
-        "panel_id": "string",
-        "position": {
-            "x": number,
-            "y": number,
-            "z": number
-        }
-    }
-}
-```
-
-### 2. Database Query Endpoint
-
-```
-POST /api/db-query
-Content-Type: application/json
-```
-
-#### Request Body Structure
+### 1.1 Database Queries
 
 ```json
 {
@@ -65,14 +34,7 @@ Content-Type: application/json
 }
 ```
 
-### 3. Task Assignment Endpoint
-
-```
-POST /api/assign-task
-Content-Type: application/json
-```
-
-#### Request Body Structure
+### 1.2 Task Assignment
 
 ```json
 {
@@ -92,57 +54,127 @@ Content-Type: application/json
 }
 ```
 
-## Command Types
+### 1.3 Task List Query
 
-### 1. Database Operations
+```json
+{
+  "tool": {
+    "name": "tasklist",
+    "parameters": {}
+  }
+}
+```
 
-- **Panel Queries**
+## 2. LLM Response Processing
 
-  - Status check
-  - Condition assessment
-  - Maintenance history
-  - Position verification
+### 2.1 Database Query Response
 
-- **Drone Queries**
+```json
+{
+    "status": "success",
+    "data": {
+        "panel_status": "string",
+        "last_maintenance": "timestamp",
+        "condition": "string",
+        "position": {
+            "x": number,
+            "y": number,
+            "z": number
+        }
+    }
+}
+```
 
-  - Position tracking
-  - Battery status
-  - Current operation status
+### 2.2 Task Assignment Response
 
-- **Rover Queries**
-  - Position tracking
-  - Battery status
-  - Maintenance status
+```json
+{
+  "status": "success",
+  "task_id": "string",
+  "assigned_to": "string",
+  "estimated_completion": "timestamp"
+}
+```
 
-### 2. Task Assignment Operations
+### 2.3 Error Response
 
-- **Drone Tasks**
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "string",
+    "message": "string"
+  }
+}
+```
 
-  - Panel cleaning
-  - Panel inspection
-  - Condition checking
-  - Emergency response
+## 3. Frontend API Specification
 
-- **Rover Tasks**
-  - Ground maintenance
-  - Panel cleaning
-  - Emergency response
+### 3.1 Command Endpoint
 
-## Response Format
+```
+POST /api/command
+Content-Type: application/json
+```
 
-### Success Response
+#### Request
+
+```json
+{
+  "command": "string",
+  "parameters": {
+    // Command specific parameters
+  }
+}
+```
+
+#### Response
+
+```json
+{
+  "status": "success|error",
+  "data": {
+    // Response data
+  },
+  "timestamp": "ISO-8601"
+}
+```
+
+## 4. Data Flow Specification
+
+### 4.1 LLM to Database Flow
+
+1. LLM receives command
+2. LLM determines required data
+3. LLM queries database
+4. Database returns data
+5. LLM processes data
+6. LLM generates structured response
+
+### 4.2 Coordinate Server Processing
+
+1. Receives command from frontend
+2. Forwards to LLM
+3. Receives LLM response
+4. Processes response
+5. Executes necessary actions
+6. Returns result to frontend
+
+## 5. Response Types
+
+### 5.1 Success Response
 
 ```json
 {
   "status": "success",
   "data": {
-    // Response data specific to the operation
+    // Operation specific data
   },
-  "timestamp": "ISO-8601 timestamp"
+  "timestamp": "ISO-8601"
 }
 ```
 
-### Error Response
+### 5.2 Error Response
 
 ```json
 {
@@ -152,101 +184,52 @@ Content-Type: application/json
     "message": "string",
     "details": {}
   },
-  "timestamp": "ISO-8601 timestamp"
+  "timestamp": "ISO-8601"
 }
 ```
 
-## Implementation Guidelines
+## 6. Command Processing Rules
 
-### 1. Command Validation
+### 6.1 Database Queries
 
-- Validate all incoming commands against predefined schemas
-- Ensure required parameters are present
-- Verify data types and ranges
-- Check for conflicting operations
+- Must validate query parameters
+- Must handle missing data gracefully
+- Must return structured response
+- Must include timestamp
 
-### 2. Database Operations
+### 6.2 Task Assignment
 
-- Implement connection pooling
-- Use prepared statements
-- Handle transaction management
-- Implement retry mechanisms for failed queries
+- Must validate task parameters
+- Must check resource availability
+- Must generate unique task ID
+- Must return task status
 
-### 3. Task Management
+### 6.3 Task List
 
-- Maintain task queue
-- Implement priority system
-- Handle task conflicts
-- Monitor task execution status
+- Must return current task status
+- Must include resource allocation
+- Must include estimated completion times
+- Must include task priority
 
-### 4. Error Handling
+## 7. Error Handling
 
-- Implement comprehensive error logging
-- Provide detailed error messages
-- Handle network failures
-- Implement retry mechanisms
+### 7.1 Database Errors
 
-### 5. Security Considerations
+- Connection failures
+- Query timeouts
+- Data validation errors
+- Missing data
 
-- Implement API authentication
-- Validate all incoming requests
-- Sanitize database queries
-- Implement rate limiting
+### 7.2 Task Assignment Errors
 
-## Performance Requirements
+- Resource unavailable
+- Invalid parameters
+- Task conflicts
+- System overload
 
-### Response Time
+### 7.3 General Errors
 
-- Command processing: < 100ms
-- Database queries: < 200ms
-- Task assignment: < 150ms
-
-### Throughput
-
-- Support minimum 100 concurrent connections
-- Handle minimum 1000 requests per minute
-
-### Availability
-
-- 99.9% uptime
-- Maximum 1 minute recovery time
-
-## Monitoring and Logging
-
-### Metrics to Track
-
-- Response times
-- Error rates
-- Queue lengths
-- Resource utilization
-- Task completion rates
-
-### Logging Requirements
-
-- All API requests and responses
-- Error conditions
-- System state changes
-- Performance metrics
-
-## Testing Requirements
-
-### Unit Tests
-
-- Command validation
-- Database operations
-- Task management
-- Error handling
-
-### Integration Tests
-
-- End-to-end workflows
-- Component interaction
-- Error scenarios
-- Performance benchmarks
-
-### Load Tests
-
-- Concurrent request handling
-- Database performance
-- Task queue management
-- System recovery
+- Invalid commands
+- Authentication failures
+- Rate limiting
+- System errors
