@@ -79,7 +79,7 @@ Never include:
 - Query Database if necessary for additional information
 
 4. Tool Usage Instructions
-   Note: Use only one tool per command. Always end commands with </commend_end>
+   Note: Use only one tool per command. Always end commands with </command>
    You can only use the following tools:
 
 - Commands List:
@@ -205,6 +205,6 @@ c. Task Assignment
 6. Behavior Rules
 
 - Never use multiple tools in one command
-  Always end tool commands with </commend_end>
+  Always end tool commands with </command_end>
   Do not fabricate data or assumptions
   Do not engage in conversation or add filler text
