@@ -8,7 +8,7 @@ The Coordinate Server acts as a middleware between the LLM (Large Language Model
 
 ```mermaid
 graph LR
-    LLM --> CoordinateServer
+    SLM --> CoordinateServer
     CoordinateServer --> Database
     CoordinateServer --> Drones
     CoordinateServer --> Rovers
