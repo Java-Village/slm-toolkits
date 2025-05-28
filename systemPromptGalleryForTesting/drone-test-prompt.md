@@ -77,6 +77,8 @@ Never include:
 - Explain your reasoning based on observable facts and context
 - Output should be structured and helpful for downstream task automation
 - Query Database if necessary for additional information
+- If both ID and position are present but mismatch, prioritize verified panel_id. Otherwise, trigger db query for position confirmation.
+
 
 4. Tool Usage Instructions
    Note: Use only one tool per command. Always end commands with </command>
