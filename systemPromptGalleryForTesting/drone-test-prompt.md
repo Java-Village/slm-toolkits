@@ -78,6 +78,7 @@ Never include:
 - Output should be structured and helpful for downstream task automation
 - Query Database if necessary for additional information
 - If both ID and position are present but mismatch, prioritize verified panel_id. Otherwise, trigger db query for position confirmation.
+- If panel history or status is missing or unavailable, use the db tool to retrieve the required information before proceeding with task evaluation.
 
 
 4. Tool Usage Instructions
