@@ -28,7 +28,7 @@ sequenceDiagram
     "parameters": {
       "target": "panel|rover|drone",
       "query": "status|battery|position|history|current_operation|maintenance|condition",
-      "id": "string"
+      "id": "id|keywords|position"
     }
   }
 }
@@ -113,7 +113,7 @@ sequenceDiagram
 ### 3.1 Command Endpoint
 
 ```
-POST /api/command
+POST /api/chat
 Content-Type: application/json
 ```
 
@@ -121,12 +121,28 @@ Content-Type: application/json
 
 ```json
 {
-  "command": "string",
+  "command": "string", // Natural language command from user
   "parameters": {
-    // Command specific parameters
-  }
+    "message": "string"
+  },
+  "chat_id": "string" //(optional, default is "-1")
 }
 ```
+
+#### Natural Language Processing
+
+- Accepts natural language input from users
+- Examples of valid commands:
+  - "Check the status of panel SP-001"
+  - "Clean the solar panels in the west section"
+  - "What's the maintenance history of drone D-001?"
+  - "Assign a drone to inspect panel SP-002"
+- System will:
+  1. Parse natural language input
+  2. Identify intent and required actions
+  3. Extract relevant parameters
+  4. Generate structured command for LLM
+  5. Return human-readable response
 
 #### Response
 
@@ -136,7 +152,8 @@ Content-Type: application/json
   "data": {
     // Response data
   },
-  "timestamp": "ISO-8601"
+  "timestamp": "ISO-8601",
+  "message": "Human readable response message"
 }
 ```
 
