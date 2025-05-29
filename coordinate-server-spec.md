@@ -335,6 +335,8 @@ sequenceDiagram
 
 ### 2.1 Database Query Response
 
+#### Response Format
+
 ```json
 {
     "status": "success",
@@ -351,7 +353,29 @@ sequenceDiagram
 }
 ```
 
+#### Response Processing Rules
+
+1. Data Validation
+
+   - Verify all required fields are present
+   - Validate data types and formats
+   - Check timestamp validity
+   - Ensure position coordinates are within valid range
+
+2. Status Mapping
+
+   - Map internal status codes to user-friendly messages
+   - Handle special cases and edge conditions
+   - Maintain status history
+
+3. Error Handling
+   - Log all database errors
+   - Provide meaningful error messages
+   - Include recovery suggestions
+
 ### 2.2 Task Assignment Response
+
+#### Response Format
 
 ```json
 {
@@ -362,7 +386,28 @@ sequenceDiagram
 }
 ```
 
+#### Response Processing Rules
+
+1. Task ID Generation
+
+   - Format: "T-YYYYMMDD-XXX"
+   - Ensure uniqueness
+   - Include timestamp for tracking
+
+2. Assignment Validation
+
+   - Verify drone availability
+   - Check task compatibility
+   - Validate resource allocation
+
+3. Completion Estimation
+   - Consider task type
+   - Account for current workload
+   - Include buffer time
+
 ### 2.3 Error Response
+
+#### Response Format
 
 ```json
 {
@@ -374,145 +419,284 @@ sequenceDiagram
 }
 ```
 
+#### Error Processing Rules
+
+1. Error Classification
+
+   - System errors
+   - Validation errors
+   - Resource errors
+   - Communication errors
+
+2. Error Logging
+
+   - Log error details
+   - Include stack trace
+   - Record timestamp
+   - Track error frequency
+
+3. Error Recovery
+   - Define recovery procedures
+   - Set retry limits
+   - Implement fallback options
+
 ## 3. Frontend API Specification
 
 ### 3.1 Command Endpoint
 
-```
-POST /api/chat
-Content-Type: application/json
-```
+#### Request Processing
 
-#### Request
+1. Input Validation
 
-```json
-{
-  "command": "string", // Natural language command from user
-  "parameters": {
-    "message": "string"
-  },
-  "chat_id": "string" //(optional, default is "-1")
-}
-```
+   - Validate JSON format
+   - Check required fields
+   - Verify data types
+   - Sanitize input
 
-#### Natural Language Processing
+2. Authentication
 
-- Accepts natural language input from users
-- Examples of valid commands:
-  - "Check the status of panel SP-001"
-  - "Clean the solar panels in the west section"
-  - "What's the maintenance history of drone D-001?"
-  - "Assign a drone to inspect panel SP-002"
-- System will:
-  1. Parse natural language input
-  2. Identify intent and required actions
-  3. Extract relevant parameters
-  4. Generate structured command for LLM
-  5. Return human-readable response
+   - Verify API key
+   - Check user permissions
+   - Validate session
 
-#### Response
+3. Rate Limiting
+   - Track request frequency
+   - Implement throttling
+   - Handle burst traffic
 
-```json
-{
-  "status": "success|error",
-  "data": {
-    // Response data
-  },
-  "timestamp": "ISO-8601",
-  "message": "Human readable response message"
-}
-```
+#### Response Processing
+
+1. Data Formatting
+
+   - Format timestamps
+   - Convert units
+   - Localize messages
+
+2. Caching
+
+   - Cache frequent queries
+   - Set cache duration
+   - Handle cache invalidation
+
+3. Compression
+   - Compress large responses
+   - Set compression level
+   - Handle different formats
 
 ## 4. Data Flow Specification
 
 ### 4.1 LLM to Database Flow
 
-1. LLM receives command
-2. LLM determines required data
-3. LLM queries database
-4. Database returns data
-5. LLM processes data
-6. LLM generates structured response
+#### Data Flow Rules
+
+1. Query Optimization
+
+   - Use appropriate indexes
+   - Optimize query patterns
+   - Cache frequent queries
+
+2. Data Consistency
+
+   - Maintain ACID properties
+   - Handle concurrent access
+   - Implement rollback
+
+3. Performance Monitoring
+   - Track query performance
+   - Monitor resource usage
+   - Set performance alerts
 
 ### 4.2 Coordinate Server Processing
 
-1. Receives command from frontend
-2. Forwards to LLM
-3. Receives LLM response
-4. Processes response
-5. Executes necessary actions
-6. Returns result to frontend
+#### Processing Rules
+
+1. Command Validation
+
+   - Validate command format
+   - Check parameter ranges
+   - Verify dependencies
+
+2. Resource Management
+
+   - Track resource usage
+   - Implement timeouts
+   - Handle resource exhaustion
+
+3. State Management
+   - Maintain system state
+   - Handle state transitions
+   - Implement recovery
 
 ## 5. Response Types
 
 ### 5.1 Success Response
 
-```json
-{
-  "status": "success",
-  "data": {
-    // Operation specific data
-  },
-  "timestamp": "ISO-8601"
-}
-```
+#### Response Rules
+
+1. Data Formatting
+
+   - Format numbers
+   - Format dates
+   - Format coordinates
+
+2. Response Optimization
+
+   - Minimize payload size
+   - Use appropriate compression
+   - Implement pagination
+
+3. Caching Strategy
+   - Set cache headers
+   - Define cache duration
+   - Handle cache updates
 
 ### 5.2 Error Response
 
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "string",
-    "message": "string",
-    "details": {}
-  },
-  "timestamp": "ISO-8601"
-}
-```
+#### Error Handling Rules
+
+1. Error Classification
+
+   - Client errors
+   - Server errors
+   - Network errors
+
+2. Error Reporting
+
+   - Log error details
+   - Track error patterns
+   - Generate reports
+
+3. Recovery Procedures
+   - Define retry logic
+   - Set timeout values
+   - Implement fallbacks
 
 ## 6. Command Processing Rules
 
 ### 6.1 Database Queries
 
-- Must validate query parameters
-- Must handle missing data gracefully
-- Must return structured response
-- Must include timestamp
+#### Query Rules
+
+1. Query Validation
+
+   - Validate query syntax
+   - Check parameter types
+   - Verify permissions
+
+2. Query Optimization
+
+   - Use appropriate indexes
+   - Optimize joins
+   - Limit result size
+
+3. Error Handling
+   - Handle timeouts
+   - Manage connections
+   - Implement retries
 
 ### 6.2 Task Assignment
 
-- Must validate task parameters
-- Must check resource availability
-- Must generate unique task ID
-- Must return task status
+#### Assignment Rules
+
+1. Resource Validation
+
+   - Check availability
+   - Verify capabilities
+   - Validate permissions
+
+2. Task Scheduling
+
+   - Set priorities
+   - Handle conflicts
+   - Manage dependencies
+
+3. Monitoring
+   - Track progress
+   - Handle timeouts
+   - Manage failures
 
 ### 6.3 Task List
 
-- Must return current task status
-- Must include resource allocation
-- Must include estimated completion times
-- Must include task priority
+#### List Management Rules
+
+1. Filtering
+
+   - Apply filters
+   - Sort results
+   - Paginate data
+
+2. Status Tracking
+
+   - Update status
+   - Track progress
+   - Handle changes
+
+3. Performance
+   - Optimize queries
+   - Cache results
+   - Handle updates
 
 ## 7. Error Handling
 
 ### 7.1 Database Errors
 
-- Connection failures
-- Query timeouts
-- Data validation errors
-- Missing data
+#### Error Types
+
+1. Connection Errors
+
+   - Timeout
+   - Connection lost
+   - Authentication failed
+
+2. Query Errors
+
+   - Syntax error
+   - Parameter error
+   - Permission denied
+
+3. Data Errors
+   - Constraint violation
+   - Data type mismatch
+   - Missing data
 
 ### 7.2 Task Assignment Errors
 
-- Resource unavailable
-- Invalid parameters
-- Task conflicts
-- System overload
+#### Error Categories
+
+1. Resource Errors
+
+   - Unavailable
+   - Incompatible
+   - Overloaded
+
+2. Validation Errors
+
+   - Invalid parameters
+   - Missing data
+   - Format error
+
+3. System Errors
+   - Timeout
+   - Communication error
+   - Internal error
 
 ### 7.3 General Errors
 
-- Invalid commands
-- Authentication failures
-- Rate limiting
-- System errors
+#### Error Management
+
+1. Error Logging
+
+   - Log details
+   - Track patterns
+   - Generate alerts
+
+2. Error Recovery
+
+   - Retry logic
+   - Fallback options
+   - Manual intervention
+
+3. Error Prevention
+   - Input validation
+   - Resource monitoring
+   - System checks
