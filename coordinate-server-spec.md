@@ -1,6 +1,6 @@
 # Coordinate Server System Specification
 
-## System Components Interaction
+## System Components Interaction (Conceptual Diagram)
 
 ```mermaid
 sequenceDiagram
