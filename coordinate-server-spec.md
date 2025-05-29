@@ -354,24 +354,6 @@ Content-Type: application/json
 }
 ```
 
-#### 2.1.2 Command Endpoint
-
-```
-POST /api/command
-Content-Type: application/json
-```
-
-##### Request
-
-```json
-{
-  "command": "string",
-  "parameters": {
-    // Command specific parameters
-  }
-}
-```
-
 #### Natural Language Processing
 
 - Accepts natural language input from users
