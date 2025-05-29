@@ -4,6 +4,22 @@ import json
 from datetime import datetime
 import requests
 
+import re
+
+def extract_json_from_llm(llm_content: str):
+    """Extract JSON from LLM response"""
+    try:
+        match = re.search(r"```json\s*(\{.*\})\s*```", llm_content, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON block found")
+        return json.loads(match.group(1))
+    except Exception as e:
+        return {
+            "reason": "Invalid JSON format from LLM.",
+            "error": str(e),
+            "error_code": "INVALID_FORMAT"
+        }
+
 System_Prompt = """
 You are a task-oriented assistant for a smart drone-based solar panel maintenance system that MUST output responses in strict JSON format.
 
@@ -245,6 +261,54 @@ MOCK_DB = [
         "battery": 43.2,
         "destination": {"latitude": 6.2, "longitude": 3.0},
         "status": "available"
+    },
+    {
+        "cluster_id": "CL-001",
+        "location": { "x": 3, "y": 3 },
+        "panels": [
+            {
+                "panel_id": "P-001",
+                "status": "clean",
+                "latest_status_time": "2025-05-15T09:00:00Z",
+                "most_recent_repair": "2025-04-30T13:45:00Z",
+                "offset": { "x": -2, "y": 2 },
+                "history": [
+                    { "type": "repair", "date": "2025-04-30", "action": "replaced connector" },
+                    { "type": "inspection", "date": "2025-05-10", "result": "normal" }
+                ]
+            },
+            {
+                "panel_id": "P-002",
+                "status": "dirty",
+                "latest_status_time": "2025-05-14T15:30:00Z",
+                "most_recent_repair": "2025-04-10T10:00:00Z",
+                "offset": { "x": 2, "y": 2 },
+                "history": [
+                    { "type": "inspection", "date": "2025-05-14", "result": "dust buildup" }
+                ]
+            },
+            {
+                "panel_id": "P-003",
+                "status": "unknown",
+                "latest_status_time": "2025-05-13T17:20:00Z",
+                "most_recent_repair": "2025-03-25T08:00:00Z",
+                "offset": { "x": -2, "y": -2 },
+                "history": [
+                    { "type": "repair", "date": "2025-03-25", "action": "replaced inverter" },
+                    { "type": "inspection", "date": "2025-05-13", "result": "power loss" }
+                ]
+            },
+            {
+                "panel_id": "P-004",
+                "status": "dirty",
+                "latest_status_time": "2025-05-15T07:00:00Z",
+                "most_recent_repair": "2025-01-10T12:00:00Z",
+                "offset": { "x": 2, "y": -2 },
+                "history": [
+                    { "type": "inspection", "date": "2025-05-14", "result": "normal" }
+                ]
+            }
+        ]
     }
 ]
 
@@ -267,21 +331,59 @@ def call_llm_api(command):
     except Exception as e:
         return {"error": str(e)}
 
+def call_tool(tool):
+    """tool simulation"""
+    if tool['name'] == 'db':
+        return MOCK_DB
+    elif tool['name'] == 'tasklist':
+        return "No Drone is available currently. Approximately 10 minutes to complete the task."
+    else:
+        return None
+
+
 @app.route('/api/command', methods=['POST'])
 def handle_command():
     data = request.json
     command = data.get('command', '')
     
-    # 調用 LLM API
-    llm_response = call_llm_api(command)
+    # Call LLM API
+    llm_raw = call_llm_api(command)
+    llm_content = llm_raw['choices'][0]['message']['content']
+    llm_response = extract_json_from_llm(llm_content)
+
+    # Check if there is ['tool'] in the response
+    if 'tool' in llm_content:
+        # LLM response in json format
+        print("LLM response in json format: ", llm_response)
+        # Check if the tools is needed
+        if llm_response['tool'] is not None:
+            # Call the tool
+            tool_response = call_tool(llm_response['tool'])
+        else:
+            tool_response = None
     
+
+        # Turn the tool response into a string
+        # Tool response will be a list of json objects
+        final_str = ""
+        for tool_response in tool_response:
+            final_str += json.dumps(tool_response)
+    
+        # Add the tool response to the llm chat history
+        
+        print("Tool response: ", final_str)
+        # Concate final_str with previous history
+        command = command + "\n" + final_str
+        # call the llm again with the tool response
+        llm_raw = call_llm_api(command)
+  
     # 隨機生成成功/失敗狀態
     status = "success" if random.random() > 0.3 else "error"
     
     response = {
         "status": status,
         "data": {
-            "llm_response": llm_response,
+            "llm_response": llm_raw,
             "drone_data": MOCK_DB
         },
         "timestamp": datetime.utcnow().isoformat() + "Z",
