@@ -59,8 +59,61 @@ sequenceDiagram
   - Keywords (e.g., "west", "north")
   - Position coordinates
 
+#### Output Format
 
+```json
+{
+  "status": "success",
+  "data": {
+    // Panel specific response
+    "panel_status": "operational|maintenance|error",
+    "last_maintenance": "2024-03-20T10:30:00Z",
+    "condition": "good|fair|poor",
+    "position": {
+      "x": 123.45,
+      "y": 67.89,
+      "z": 10.0
+    },
+    "battery_level": 85,
+    "efficiency": 95.5,
+    "maintenance_history": [
+      {
+        "date": "2024-03-20T10:30:00Z",
+        "type": "cleaning",
+        "status": "completed"
+      }
+    ]
+  },
+  "timestamp": "2024-03-21T08:00:00Z"
+}
+```
 
+#### Response Fields
+
+- `panel_status`: Current operational state
+- `last_maintenance`: Timestamp of last maintenance
+- `condition`: Physical condition assessment
+- `position`: 3D coordinates
+- `battery_level`: Current battery percentage
+- `efficiency`: Current energy conversion efficiency
+- `maintenance_history`: Array of maintenance records
+
+#### Error Response
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "DB_QUERY_ERROR",
+    "message": "Failed to retrieve panel information",
+    "details": {
+      "reason": "Panel not found",
+      "suggested_action": "Verify panel ID"
+    }
+  },
+  "timestamp": "2024-03-21T08:00:00Z"
+}
+```
 
 #### Common Error Codes
 
