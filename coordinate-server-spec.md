@@ -21,6 +21,8 @@ sequenceDiagram
 
 ### 1.1 Database Queries
 
+#### Input Format
+
 ```json
 {
   "tool": {
@@ -33,6 +35,40 @@ sequenceDiagram
   }
 }
 ```
+
+#### Parameter Details
+
+- `target`: Specifies the type of entity to query
+
+  - `panel`: Solar panel information
+  - `rover`: Ground maintenance vehicle information
+  - `drone`: Aerial vehicle information
+
+- `query`: Type of information to retrieve
+
+  - `status`: Current operational status
+  - `battery`: Battery level and charging status
+  - `position`: Current coordinates
+  - `history`: Maintenance and operation history
+  - `current_operation`: Active task information
+  - `maintenance`: Maintenance schedule and history
+  - `condition`: Physical condition assessment
+
+- `id`: Identifier for the target
+  - Can be specific ID (e.g., "SP-001")
+  - Keywords (e.g., "west", "north")
+  - Position coordinates
+
+
+
+
+#### Common Error Codes
+
+- `DB_QUERY_ERROR`: General database query failure
+- `INVALID_TARGET`: Unsupported target type
+- `INVALID_QUERY`: Unsupported query type
+- `NOT_FOUND`: Target entity not found
+- `DB_CONNECTION_ERROR`: Database connection failure
 
 ### 1.2 Task Assignment
 
