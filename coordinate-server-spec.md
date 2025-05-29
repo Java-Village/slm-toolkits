@@ -331,118 +331,9 @@ sequenceDiagram
 - `INVALID_TIME_RANGE`: Invalid time period
 - `DB_CONNECTION_ERROR`: Database connection failure
 
-## 2. LLM Response Processing
+## 2. Frontend API Specification
 
-### 2.1 Database Query Response
-
-#### Response Format
-
-```json
-{
-    "status": "success",
-    "data": {
-        "panel_status": "string",
-        "last_maintenance": "timestamp",
-        "condition": "string",
-        "position": {
-            "x": number,
-            "y": number,
-            "z": number
-        }
-    }
-}
-```
-
-#### Response Processing Rules
-
-1. Data Validation
-
-   - Verify all required fields are present
-   - Validate data types and formats
-   - Check timestamp validity
-   - Ensure position coordinates are within valid range
-
-2. Status Mapping
-
-   - Map internal status codes to user-friendly messages
-   - Handle special cases and edge conditions
-   - Maintain status history
-
-3. Error Handling
-   - Log all database errors
-   - Provide meaningful error messages
-   - Include recovery suggestions
-
-### 2.2 Task Assignment Response
-
-#### Response Format
-
-```json
-{
-  "status": "success",
-  "task_id": "string",
-  "assigned_to": "string",
-  "estimated_completion": "timestamp"
-}
-```
-
-#### Response Processing Rules
-
-1. Task ID Generation
-
-   - Format: "T-YYYYMMDD-XXX"
-   - Ensure uniqueness
-   - Include timestamp for tracking
-
-2. Assignment Validation
-
-   - Verify drone availability
-   - Check task compatibility
-   - Validate resource allocation
-
-3. Completion Estimation
-   - Consider task type
-   - Account for current workload
-   - Include buffer time
-
-### 2.3 Error Response
-
-#### Response Format
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "string",
-    "message": "string"
-  }
-}
-```
-
-#### Error Processing Rules
-
-1. Error Classification
-
-   - System errors
-   - Validation errors
-   - Resource errors
-   - Communication errors
-
-2. Error Logging
-
-   - Log error details
-   - Include stack trace
-   - Record timestamp
-   - Track error frequency
-
-3. Error Recovery
-   - Define recovery procedures
-   - Set retry limits
-   - Implement fallback options
-
-## 3. Frontend API Specification
-
-### 3.1 Command Endpoint
+### 2.1 Command Endpoint
 
 #### Request Processing
 
@@ -483,9 +374,9 @@ sequenceDiagram
    - Set compression level
    - Handle different formats
 
-## 4. Data Flow Specification
+## 3. Data Flow Specification
 
-### 4.1 LLM to Database Flow
+### 3.1 LLM to Database Flow
 
 #### Data Flow Rules
 
@@ -506,7 +397,7 @@ sequenceDiagram
    - Monitor resource usage
    - Set performance alerts
 
-### 4.2 Coordinate Server Processing
+### 3.2 Coordinate Server Processing
 
 #### Processing Rules
 
@@ -527,9 +418,9 @@ sequenceDiagram
    - Handle state transitions
    - Implement recovery
 
-## 5. Response Types
+## 4. Response Types
 
-### 5.1 Success Response
+### 4.1 Success Response
 
 #### Response Rules
 
@@ -550,7 +441,7 @@ sequenceDiagram
    - Define cache duration
    - Handle cache updates
 
-### 5.2 Error Response
+### 4.2 Error Response
 
 #### Error Handling Rules
 
@@ -571,9 +462,9 @@ sequenceDiagram
    - Set timeout values
    - Implement fallbacks
 
-## 6. Command Processing Rules
+## 5. Command Processing Rules
 
-### 6.1 Database Queries
+### 5.1 Database Queries
 
 #### Query Rules
 
@@ -594,7 +485,7 @@ sequenceDiagram
    - Manage connections
    - Implement retries
 
-### 6.2 Task Assignment
+### 5.2 Task Assignment
 
 #### Assignment Rules
 
@@ -615,7 +506,7 @@ sequenceDiagram
    - Handle timeouts
    - Manage failures
 
-### 6.3 Task List
+### 5.3 Task List
 
 #### List Management Rules
 
@@ -636,9 +527,9 @@ sequenceDiagram
    - Cache results
    - Handle updates
 
-## 7. Error Handling
+## 6. Error Handling
 
-### 7.1 Database Errors
+### 6.1 Database Errors
 
 #### Error Types
 
@@ -659,7 +550,7 @@ sequenceDiagram
    - Data type mismatch
    - Missing data
 
-### 7.2 Task Assignment Errors
+### 6.2 Task Assignment Errors
 
 #### Error Categories
 
@@ -680,7 +571,7 @@ sequenceDiagram
    - Communication error
    - Internal error
 
-### 7.3 General Errors
+### 6.3 General Errors
 
 #### Error Management
 
