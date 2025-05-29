@@ -391,13 +391,13 @@ Content-Type: application/json
    - Verify data types
    - Sanitize input
 
-2. Authentication
+2. Authentication (Pending, to be implemented)
 
    - Verify API key
    - Check user permissions
    - Validate session
 
-3. Rate Limiting
+3. Rate Limiting (Pending, to be implemented)
    - Track request frequency
    - Implement throttling
    - Handle burst traffic
@@ -409,6 +409,7 @@ Content-Type: application/json
    - Format timestamps
    - Convert units
    - Localize messages
+   - Handling different chats history
 
 2. Caching
 
@@ -416,7 +417,7 @@ Content-Type: application/json
    - Set cache duration
    - Handle cache invalidation
 
-3. Compression
+3. Compression (Pending, to be implemented)
    - Compress large responses
    - Set compression level
    - Handle different formats
@@ -427,19 +428,19 @@ Content-Type: application/json
 
 #### Data Flow Rules
 
-1. Query Optimization
+1. Query Optimization (Pending, to be implemented)
 
    - Use appropriate indexes
    - Optimize query patterns
    - Cache frequent queries
 
-2. Data Consistency
+2. Data Consistency (Pending, to be implemented)
 
    - Maintain ACID properties
    - Handle concurrent access
    - Implement rollback
 
-3. Performance Monitoring
+3. Performance Monitoring (Pending, to be implemented)
    - Track query performance
    - Monitor resource usage
    - Set performance alerts
@@ -498,17 +499,6 @@ Content-Type: application/json
    - Server errors
    - Network errors
 
-2. Error Reporting
-
-   - Log error details
-   - Track error patterns
-   - Generate reports
-
-3. Recovery Procedures
-   - Define retry logic
-   - Set timeout values
-   - Implement fallbacks
-
 ## 5. Command Processing Rules
 
 ### 5.1 Database Queries
@@ -521,7 +511,7 @@ Content-Type: application/json
    - Check parameter types
    - Verify permissions
 
-2. Query Optimization
+2. Query Optimization (Pending, to be implemented)
 
    - Use appropriate indexes
    - Optimize joins
@@ -536,20 +526,23 @@ Content-Type: application/json
 
 #### Assignment Rules
 
-1. Resource Validation
+1. Resource Validation (Implement first)
 
    - Check availability
    - Verify capabilities
    - Validate permissions
 
-2. Task Scheduling
+2. Task Scheduling (Implement first)
 
    - Set priorities
    - Handle conflicts
    - Manage dependencies
 
-3. Monitoring
+3. Monitoring (Implement first)
    - Track progress
+     - The drone / rover should ACK / TIMEOUT if they failed to achieve the task or stucked
+     - This error or TIMEOUT should be handled by the server and sent to SLM
+     - So the SLM can reassign the task to another drone / rover or retry the task, and inform the user in the chat.
    - Handle timeouts
    - Manage failures
 
