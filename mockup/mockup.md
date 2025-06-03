@@ -89,54 +89,6 @@ graph TD
 
 ---
 
-### System Architecture Diagram
-
-```mermaid
-graph TB
-    subgraph Frontend
-        UI[User Interface]
-        Viz[Visualization Layer]
-        State[State Management]
-        UI --> Viz
-        UI --> State
-        Viz --> State
-    end
-
-    subgraph Backend
-        API[API Gateway]
-        LLM[LLM Service]
-        DB[(Database)]
-        Drone[Drone Controller]
-        Task[Task Manager]
-
-        API --> LLM
-        API --> Task
-        Task --> Drone
-        Task --> DB
-        LLM --> DB
-    end
-
-    subgraph External
-        Drones[Drone Fleet]
-        Panels[Solar Panels]
-    end
-
-    Frontend <--> Backend
-    Drone --> Drones
-    Drones --> Panels
-    Panels --> DB
-
-    classDef frontend fill:#e1f5fe,stroke:#01579b
-    classDef backend fill:#f3e5f5,stroke:#4a148c
-    classDef external fill:#f1f8e9,stroke:#33691e
-
-    class Frontend frontend
-    class Backend backend
-    class External external
-```
-
----
-
 ### For Frontend Partner
 
 You will interact with the API via the `/api/command` endpoint.
