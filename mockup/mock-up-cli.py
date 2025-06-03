@@ -4,21 +4,32 @@ from datetime import datetime
 import sys
 import time
 import threading
+import random
 
 def loading_animation(stop_event):
     """顯示載入動畫"""
     animation = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     idx = 0
     while not stop_event.is_set():
-        sys.stdout.write("\r" + "等待回應中 " + animation[idx % len(animation)])
+        sys.stdout.write("\r" + "Waiting for the LLM response... " + animation[idx % len(animation)])
         sys.stdout.flush()
         idx += 1
         time.sleep(0.1)
     sys.stdout.write("\r" + " " * 20 + "\r")  # 清除動畫
 
+def stream_response(content):
+    """模擬串流效果，逐字顯示內容"""
+    words = content.split()
+    for word in words:
+        print(word, end=' ', flush=True)
+        # 隨機延遲 0.05 到 0.15 秒，模擬真實打字效果
+        time.sleep(random.uniform(0.05, 0.15))
+    print()  # 最後換行
+
 def print_response(response):
     print("\n=== Response ===")
-    print(f"Message: {response['data']['llm_response']['choices'][0]['message']['content']}")
+    content = response['data']['llm_response']['choices'][0]['message']['content']
+    stream_response(content)
     print("===========\n")
 
 def main():
