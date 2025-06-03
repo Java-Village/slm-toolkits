@@ -71,23 +71,6 @@ The backend sends the LLM a **strict task-oriented system prompt** to ensure onl
 
 ---
 
-### Mermaid Flowchart
-
-```mermaid
-graph TD
-    A[Client Sends Command] --> B[Flask /api/command Endpoint]
-    B --> C[Send to LLM with System Prompt]
-    C --> D[LLM Responds with JSON]
-    D --> E{Tool Needed?}
-    E -- Yes --> F[Call Tool (e.g., db)]
-    F --> G[Attach Tool Result]
-    G --> H[Resend to LLM for Final Decision]
-    E -- No --> H
-    H --> I[Randomly Simulate Task Success or Failure]
-    I --> J[Return Final Response as JSON]
-```
-
----
 
 ### For Frontend Partner
 
