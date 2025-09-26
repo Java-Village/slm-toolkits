@@ -1,0 +1,140 @@
+[
+  {
+    "name": "get_panel_status",
+    "description": "Get the current status of a specific solar panel.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "panel_id": {
+          "type": "string",
+          "description": "The unique identifier of the solar panel, e.g., 'P-001'."
+        }
+      },
+      "required": ["panel_id"]
+    }
+  },
+  {
+    "name": "dispatch_drone_to_location",
+    "description": "Dispatch an available drone to a specified geographic location.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "destination_latitude": {
+          "type": "number",
+          "format": "float",
+          "description": "The latitude coordinate for the drone's destination."
+        },
+        "destination_longitude": {
+          "type": "number",
+          "format": "float",
+          "description": "The longitude coordinate for the drone's destination."
+        },
+        "mission_type": {
+          "type": "string",
+          "description": "The type of mission for the drone (e.g., 'inspection', 'cleaning', 'delivery').",
+          "enum": ["inspection", "cleaning", "delivery", "patrol"]
+        }
+      },
+      "required": [
+        "destination_latitude",
+        "destination_longitude",
+        "mission_type"
+      ]
+    }
+  },
+  {
+    "name": "dispatch_rover_to_location",
+    "description": "Dispatch an available rover to a specified geographic location to perform a task.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "destination_latitude": {
+          "type": "number",
+          "format": "float",
+          "description": "The latitude coordinate for the rover's destination."
+        },
+        "destination_longitude": {
+          "type": "number",
+          "format": "float",
+          "description": "The longitude coordinate for the rover's destination."
+        },
+        "action_type": {
+          "type": "string",
+          "description": "The action the rover should perform at the destination (e.g., 'collect_sample', 'perform_maintenance', 'take_measurements').",
+          "enum": ["collect_sample", "perform_maintenance", "take_measurements"]
+        }
+      },
+      "required": [
+        "destination_latitude",
+        "destination_longitude",
+        "action_type"
+      ]
+    }
+  },
+  {
+    "name": "get_rover_info",
+    "description": "Retrieve detailed information about a specific rover.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "rover_id": {
+          "type": "string",
+          "description": "The unique identifier of the rover, e.g., 'R-001'."
+        }
+      },
+      "required": ["rover_id"]
+    }
+  },
+  {
+    "name": "get_drone_info",
+    "description": "Retrieve detailed information about a specific drone.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "drone_id": {
+          "type": "string",
+          "description": "The unique identifier of the drone, e.g., 'D-001'."
+        }
+      },
+      "required": ["drone_id"]
+    }
+  },
+  {
+    "name": "find_available_agents",
+    "description": "Find available drones or rovers that are currently idle.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "agent_type": {
+          "type": "string",
+          "description": "The type of agent to search for ('drone' or 'rover').",
+          "enum": ["drone", "rover"]
+        }
+      },
+      "required": ["agent_type"]
+    }
+  },
+  {
+    "name": "get_panel_maintenance_history",
+    "description": "Retrieve the maintenance and inspection history for a specific solar panel.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "panel_id": {
+          "type": "string",
+          "description": "The unique identifier of the solar panel, e.g., 'P-001'."
+        }
+      },
+      "required": ["panel_id"]
+    }
+  },
+  {
+    "name": "list_all_panels",
+    "description": "Retrieve a list of all registered solar panels with their basic status.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  }
+]
