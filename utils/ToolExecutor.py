@@ -1,63 +1,119 @@
 import requests
 import json
-
+from urllib.parse import urljoin
 
 class ToolExecutor:
     def __init__(self, go_server_base_url: str):
+        """
+        Initializes the ToolExecutor with the base URL of the Go backend server.
+        """
         self.base_url = go_server_base_url
 
     def execute_tool(self, tool_name: str, parameters: dict):
         """
-        Executes a tool call by making an HTTP request to the Go backend server.
-        This acts as a dispatcher.
+        Executes a tool call by dispatching to the appropriate handler function.
         """
-        if tool_name == "list_all_agents":
-            return self.list_all_agents(parameters)
-        elif tool_name == "get_panel_status":
-            return self.get_panel_status(parameters)
+        tool_handlers = {
+            "find_panels": self.find_panels,
+            "get_panel_maintenance_history": self.get_panel_maintenance_history,
+            "dispatch_drone_to_cluster": self.dispatch_drone_to_cluster,
+            "dispatch_rover_to_panel": self.dispatch_rover_to_panel,
+            "get_drone_status": self.get_drone_status,
+        }
 
+        handler = tool_handlers.get(tool_name)
+        if handler:
+            return handler(parameters)
         else:
-            return {"error": f"Tool {tool_name} not found."}
+            return {"error": f"Tool '{tool_name}' not found."}
 
-    def list_all_panels(self, parameters: dict) -> dict:
+
+    def _make_request(self, method: str, endpoint: str, params: dict = None, data: dict = None) -> dict:
         """
-        Handles the 'list_all_panels' tool by calling the Go server's GET /api/panels endpoint.
+        A helper function to make HTTP requests to the Go backend.
         """
+        url = urljoin(self.base_url, endpoint)
         try:
-            # The 'parameters' might be empty for this tool, which is fine.
-            # We can add support for passing query params later if needed.
-            response = requests.get(f"{self.base_url}/api/panels")
-            response.raise_for_status()  # Raises an exception for bad status codes (4xx or 5xx)
+            response = requests.request(method, url, params=params, json=data, timeout=10)
+            response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
+            if response.status_code == 204: # No Content
+                return {"status": "success", "message": "Request successful with no content returned."}
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            return {"error": f"HTTP error occurred: {e.response.status_code} {e.response.reason}", "details": e.response.text}
         except requests.exceptions.RequestException as e:
-            return {"error": f"Failed to call Go backend for list_all_panels: {e}"}
+            return {"error": f"Failed to call Go backend endpoint '{endpoint}': {e}"}
+    
 
-    def get_panel_status(self, parameters: dict) -> dict:
+    def find_panels(self, parameters: dict) -> dict:
         """
-        Handles the 'get_panel_status' tool by calling the Go server's GET /api/panels endpoint
-        with query parameters.
+        Handles the 'find_panels' tool by calling GET /api/panels with optional filters.
         """
+        # Rename keys to match the Go API query parameters if necessary
+        query_params = {
+            "clusterid": parameters.get("cluster_id"),
+            "panelid": parameters.get("panel_id"),
+            "status": parameters.get("status"),
+        }
+        # Filter out None values so they are not included in the query string
+        cleaned_params = {k: v for k, v in query_params.items() if v is not None}
+        return self._make_request("GET", "api/panels", params=cleaned_params)
+
+    def get_panel_maintenance_history(self, parameters: dict) -> dict:
+        """
+        Handles 'get_panel_maintenance_history' by calling GET /api/maintenance_requests.
+        """
+        cluster_id = parameters.get("cluster_id")
         panel_id = parameters.get("panel_id")
-        if not panel_id:
-            return {"error": "panel_id is a required parameter for get_panel_status."}
 
-        try:
-            # Assuming panel_id format is "P-001" and we need to extract cluster and panel numbers.
-            # This logic will need to be confirmed with the Go backend developer.
-            # For now, let's assume a simple query.
-            # We'll need to clarify how to map "P-001" to clusterid and panelid.
-            # Let's placeholder this logic for now.
-            
-            # Placeholder: Let's assume we can query by a string ID for now.
-            # We will need to adjust this based on the actual API capabilities.
-            # For this example, I'll pretend the API supports a `panel_full_id` query param.
-            # In reality, we'll need to parse 'P-001' into cluster and panel numbers.
-            
-            # This is a placeholder call and will likely need to be changed
-            # response = requests.get(f"{self.base_url}/api/panels?panel_full_id={panel_id}")
-            
-            # Let's just return a mock success message for now until we clarify the API
-            return {"status": f"Successfully retrieved status for panel {panel_id}. (Implementation Pending)"}
+        if not cluster_id or not panel_id:
+            return {"error": "cluster_id and panel_id are required parameters."}
 
-        except requests.exceptions.RequestException as e:
-            return {"error": f"Failed to call Go backend for get_panel_status: {e}"}
+        query_params = {
+            "clusterid": cluster_id,
+            "panelid": panel_id,
+        }
+        return self._make_request("GET", "api/maintenance_requests", params=query_params)
+
+    def dispatch_drone_to_cluster(self, parameters: dict) -> dict:
+        """
+        Handles 'dispatch_drone_to_cluster' by calling POST /api/drones/send/{cluster_id}.
+        """
+        cluster_id = parameters.get("cluster_id")
+        if not cluster_id:
+            return {"error": "cluster_id is a required parameter."}
+        
+        endpoint = f"api/drones/send/{cluster_id}"
+        return self._make_request("POST", endpoint)
+
+
+
+    def dispatch_rover_to_panel(self, parameters: dict) -> dict:
+        """
+        Handles 'dispatch_rover_to_panel'.
+        NOTE: This is a placeholder as the exact API endpoint needs confirmation.
+        Assuming it will be POST /api/rover/send/{cluster_id}/{panel_id}.
+        """
+        cluster_id = parameters.get("cluster_id")
+        panel_id = parameters.get("panel_id")
+        if not cluster_id or not panel_id:
+            return {"error": "cluster_id and panel_id are required parameters."}
+
+        # This endpoint is an assumption based on `handlers.go` and needs to be verified.
+        # For now, it returns a mock success message.
+        # endpoint = f"api/rover/send/{cluster_id}/{panel_id}"
+        # return self._make_request("POST", endpoint)
+        
+        print(f"--- MOCK CALL ---: Dispatching rover to Cluster {cluster_id}, Panel {panel_id}")
+        return {"status": "success", "message": f"Rover dispatched to cluster {cluster_id}, panel {panel_id}. (Mock Response)"}
+
+    def get_drone_status(self, parameters: dict) -> dict:
+        """
+        Handles the 'get_drone_status' tool by calling GET /api/drones with optional filters.
+        """
+        query_params = {
+            "droneid": parameters.get("drone_id"),
+            "destination": parameters.get("destination_cluster_id"),
+        }
+        cleaned_params = {k: v for k, v in query_params.items() if v is not None}
+        return self._make_request("GET", "api/drones", params=cleaned_params)

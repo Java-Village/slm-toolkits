@@ -1,5 +1,5 @@
 {
-  "lm_api_url": "http://localhost:1234/v1/chat/completions",
+  "lm_api_url": "http://localhost:1234/v1/",
   "provider": "local",
   "model": "gpt-oss-20b",
   "request_options": {

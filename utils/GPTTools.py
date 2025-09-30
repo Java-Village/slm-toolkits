@@ -50,17 +50,16 @@ class GPTParsingUtils:
     def tool_usage_parsing(self, response) -> dict:
         """
         Parse the tool usage response from the GPT model.
+        This regex is designed to handle both 'to=tool_name' and 'to=functions.tool_name' formats.
         Returns a dictionary with 'tool_name' and 'parameters' if a tool call is found,
         None if no tool call pattern is matched.
         """
 
-        # Try the newer format first: to=tool_name
-        match = re.search(r"to=(\w+).*<\|message\|>(.*)", response, re.DOTALL)
-
-        # If that doesn't work, try the older format: to=functions.tool_name
-        if not match:
-            match = re.search(
-                r"to=functions\.(\w+).*<\|message\|>(.*)", response, re.DOTALL)
+        # This single regex handles both cases:
+        # 1. to=functions.find_panels -> will capture 'find_panels'
+        # 2. to=find_panels -> will capture 'find_panels'
+        # The (?:functions\.)? is a non-capturing group that makes "functions." optional.
+        match = re.search(r"to=(?:functions\.)?(\w+).*<\|message\|>(.*)", response, re.DOTALL)
         if match:
             try:
                 tool_name = match.group(1).strip()

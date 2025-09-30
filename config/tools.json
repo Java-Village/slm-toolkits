@@ -1,117 +1,25 @@
 [
   {
-    "name": "get_panel_status",
-    "description": "Get the current status of a specific solar panel.",
+    "name": "find_panels",
+    "description": "Find solar panels based on various filter criteria. Can be used to list all panels, find panels in a specific cluster, or find panels with a certain status.",
     "parameters": {
       "type": "object",
       "properties": {
+        "cluster_id": {
+          "type": "integer",
+          "description": "The ID of the cluster to search for panels in."
+        },
         "panel_id": {
-          "type": "string",
-          "description": "The unique identifier of the solar panel, e.g., 'P-001'."
-        }
-      },
-      "required": ["panel_id"]
-    }
-  },
-  {
-    "name": "dispatch_drone_to_location",
-    "description": "Dispatch an available drone to a specified geographic location.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "destination_latitude": {
-          "type": "number",
-          "format": "float",
-          "description": "The latitude coordinate for the drone's destination."
+          "type": "integer",
+          "description": "The ID of a specific panel within a cluster. Requires cluster_id to be set."
         },
-        "destination_longitude": {
-          "type": "number",
-          "format": "float",
-          "description": "The longitude coordinate for the drone's destination."
-        },
-        "mission_type": {
+        "status": {
           "type": "string",
-          "description": "The type of mission for the drone (e.g., 'inspection', 'cleaning', 'delivery').",
-          "enum": ["inspection", "cleaning", "delivery", "patrol"]
+          "description": "Filter panels by their status.",
+          "enum": ["healthy", "dirty"]
         }
       },
-      "required": [
-        "destination_latitude",
-        "destination_longitude",
-        "mission_type"
-      ]
-    }
-  },
-  {
-    "name": "dispatch_rover_to_location",
-    "description": "Dispatch an available rover to a specified geographic location to perform a task.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "destination_latitude": {
-          "type": "number",
-          "format": "float",
-          "description": "The latitude coordinate for the rover's destination."
-        },
-        "destination_longitude": {
-          "type": "number",
-          "format": "float",
-          "description": "The longitude coordinate for the rover's destination."
-        },
-        "action_type": {
-          "type": "string",
-          "description": "The action the rover should perform at the destination (e.g., 'collect_sample', 'perform_maintenance', 'take_measurements').",
-          "enum": ["collect_sample", "perform_maintenance", "take_measurements"]
-        }
-      },
-      "required": [
-        "destination_latitude",
-        "destination_longitude",
-        "action_type"
-      ]
-    }
-  },
-  {
-    "name": "get_rover_info",
-    "description": "Retrieve detailed information about a specific rover.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "rover_id": {
-          "type": "string",
-          "description": "The unique identifier of the rover, e.g., 'R-001'."
-        }
-      },
-      "required": ["rover_id"]
-    }
-  },
-  {
-    "name": "get_drone_info",
-    "description": "Retrieve detailed information about a specific drone.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "drone_id": {
-          "type": "string",
-          "description": "The unique identifier of the drone, e.g., 'D-001'."
-        }
-      },
-      "required": ["drone_id"]
-    }
-  },
-  {
-    "name": "find_available_agents",
-    "description": "Find available drones or rovers that are currently idle.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "agent_type": {
-          "type": "string",
-          "description": "The type of agent to search for ('drone' or 'rover').",
-          "enum": ["drone", "rover"]
-        }
-      },
-      "required": ["agent_type"]
+      "required": []
     }
   },
   {
@@ -120,20 +28,65 @@
     "parameters": {
       "type": "object",
       "properties": {
+        "cluster_id": {
+          "type": "integer",
+          "description": "The cluster ID of the solar panel."
+        },
         "panel_id": {
-          "type": "string",
-          "description": "The unique identifier of the solar panel, e.g., 'P-001'."
+          "type": "integer",
+          "description": "The panel ID of the solar panel."
         }
       },
-      "required": ["panel_id"]
+      "required": ["cluster_id", "panel_id"]
     }
   },
   {
-    "name": "list_all_panels",
-    "description": "Retrieve a list of all registered solar panels with their basic status.",
+    "name": "dispatch_drone_to_cluster",
+    "description": "Dispatch an available drone to a specified solar panel cluster for a mission.",
     "parameters": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "cluster_id": {
+          "type": "integer",
+          "description": "The ID of the cluster to send the drone to."
+        }
+      },
+      "required": ["cluster_id"]
+    }
+  },
+  {
+    "name": "dispatch_rover_to_panel",
+    "description": "Dispatch an available rover to a specific solar panel to perform a task.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "integer",
+          "description": "The cluster ID of the target panel."
+        },
+        "panel_id": {
+          "type": "integer",
+          "description": "The panel ID of the target panel."
+        }
+      },
+      "required": ["cluster_id", "panel_id"]
+    }
+  },
+  {
+    "name": "get_drone_status",
+    "description": "Retrieve status logs for drones. Can filter by drone ID, destination, and time.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "drone_id": {
+          "type": "integer",
+          "description": "The unique identifier of the drone."
+        },
+        "destination_cluster_id": {
+          "type": "integer",
+          "description": "Filter logs by the drone's target destination cluster ID."
+        }
+      },
       "required": []
     }
   }
