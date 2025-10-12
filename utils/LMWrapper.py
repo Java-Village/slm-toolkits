@@ -34,7 +34,7 @@ def gemini_to_openai_like(response_json) -> SimpleNamespace:
         print(f"[DEBUG] Error parsing Gemini response: {response_json}")
         raise RuntimeError(f"Invalid Gemini response structure: {e}")
 
-        # --- Backend Protocol (remains the same) ---
+
 class IChatBackend(Protocol):
     def chat(self, messages: List[Dict], system_prompt: Optional[str] = None) -> str:
         """
@@ -43,7 +43,6 @@ class IChatBackend(Protocol):
         """
         pass
 
-# --- OpenAI Wrapper (Slightly modified to return string) ---
 class OpenAIWrapper:
     def __init__(self, api_key: str, base_url: str, model: str, request_options: Dict):
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
