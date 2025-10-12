@@ -1,6 +1,10 @@
 from utils.LMWrapper import LMWrapper
 from utils.GPTTools import GPTParsingUtils, PromptBuilder
 from dotenv import load_dotenv
+
+from utils.ChatHistory import LocalChatHistory
+from utils.ChatHistory import ChatHistoryProvider
+
 import os
 
 # --- Setup ---
@@ -92,6 +96,9 @@ Then, respond with the appropriate tool call in the specified format.
         print("  - If your local LLM server is running and configured correctly.")
         print("  - If the model you are using supports tool calling/function calling.")
         print("  - The raw LLM response above for clues.")
+
+
+def test_chat_history():
 
 
 if __name__ == "__main__":
