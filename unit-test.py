@@ -187,6 +187,128 @@ def test_chat_history():
         print(f"\n[FAIL] ChatHistory test failed: {e}")
         import traceback
         traceback.print_exc()
+
+
+def test_coordinate_server_api():
+    """
+    Test CoordinateServer API endpoints with real ChatHistory integration.
+    This test uses the actual Flask app and history/conversations.json file.
+    
+    Note: This test will create real conversations in the production history file.
+    
+    Tests:
+    1. POST /api/chat - Create conversation and send message
+    2. POST /api/chat - Continue existing conversation
+    3. GET /api/conversations - List all conversations
+    4. GET /api/conversations/<id> - Get specific conversation
+    5. Error handling - 404 for non-existent conversation
+    """
+    print("--- Running Test: CoordinateServer API (Using Real Files) ---")
+    
+    from pathlib import Path
+    
+    try:
+        # Import and configure app
+        print("\n1. Testing Flask app initialization...")
+        from app.CoordinateServer import app
+        app.config['TESTING'] = True
+        
+        with app.test_client() as client:
+            print("   ✓ Flask test client initialized")
+            print("   ⚠️  Using production history file: history/conversations.json")
+            
+            # 2. Test POST /api/chat - Create conversation
+            print("\n2. Testing POST /api/chat - Create conversation...")
+            print("   (This will call the real LLM, may take a moment...)")
+            
+            response = client.post('/api/chat',
+                json={'messages': [{'role': 'user', 'content': 'Hello, this is a unit test message'}]},
+                content_type='application/json'
+            )
+            
+            assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+            data = response.get_json()
+            assert 'conversation_id' in data, "Missing conversation_id in response"
+            assert 'response' in data, "Missing response in response"
+            
+            conversation_id = data['conversation_id']
+            assistant_content = data['response']['content']
+            
+            print(f"   ✓ Conversation created: {conversation_id[:8]}...")
+            print(f"   ✓ Response: {assistant_content[:80]}...")
+            
+            # 3. Test POST /api/chat - Continue conversation
+            print("\n3. Testing continue conversation...")
+            print("   (Calling LLM again...)")
+            
+            response = client.post('/api/chat',
+                json={
+                    'conversation_id': conversation_id,
+                    'messages': [{'role': 'user', 'content': 'Second test message'}]
+                },
+                content_type='application/json'
+            )
+            
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data['conversation_id'] == conversation_id
+            print(f"   ✓ Conversation continued")
+            print(f"   ✓ Response: {data['response']['content'][:80]}...")
+            
+            # 4. Test GET /api/conversations
+            print("\n4. Testing GET /api/conversations...")
+            response = client.get('/api/conversations')
+            assert response.status_code == 200
+            
+            conv_list = response.get_json()
+            assert len(conv_list) >= 1
+            assert any(c['id'] == conversation_id for c in conv_list)
+            print(f"   ✓ Found {len(conv_list)} conversation(s)")
+            
+            # 5. Test GET /api/conversations/<id>
+            print("\n5. Testing GET /api/conversations/<id>...")
+            response = client.get(f'/api/conversations/{conversation_id}')
+            assert response.status_code == 200
+            
+            conversation = response.get_json()
+            assert 'messages' in conversation
+            assert len(conversation['messages']) >= 2
+            print(f"   ✓ Retrieved conversation with {len(conversation['messages'])} messages")
+            
+            # 6. Test 404 for non-existent conversation
+            print("\n6. Testing 404 for non-existent conversation...")
+            response = client.get('/api/conversations/non-existent-id-12345')
+            assert response.status_code == 404
+            print("   ✓ Correctly returned 404")
+            
+            # 7. Verify persistence in file
+            print("\n7. Verifying data persistence...")
+            history_file = Path("history/conversations.json")
+            assert history_file.exists()
+            
+            import json
+            with open(history_file, 'r', encoding='utf-8') as f:
+                file_data = json.load(f)
+            
+            assert conversation_id in file_data
+            print(f"   ✓ Data persisted in {history_file}")
+            print(f"   ✓ File contains {len(file_data)} total conversation(s)")
+        
+        print("\n[SUCCESS] All CoordinateServer API tests passed! ✅")
+        print("\n📝 Note: Test conversation saved in history/conversations.json")
+        print(f"   Test conversation ID: {conversation_id}")
+        
+    except AssertionError as e:
+        print(f"\n[FAIL] Assertion failed: {e}")
+        import traceback
+        traceback.print_exc()
+    except Exception as e:
+        print(f"\n[FAIL] CoordinateServer API test failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 if __name__ == "__main__":
+    test_coordinate_server_api()
     test_chat_history()
     test_lm_wrapper_and_tool_parsing()

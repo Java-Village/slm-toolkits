@@ -6,6 +6,8 @@ from flask.wrappers import Response
 from utils.LMWrapper import LMWrapper
 from utils.ToolExecutor import ToolExecutor
 from utils.GPTTools import PromptBuilder, GPTParsingUtils
+from utils.ChatHistory import LocalChatHistory, ChatHistoryProvider
+
 
 import json
 
@@ -32,10 +34,12 @@ When a user gives a command, you should first determine which tool(s) to use.
 Then, respond with the appropriate tool call in the specified format. If no tool is needed, respond in natural language.
 """
 
-# In-memory storage for chat histories
-# In a production environment, you would replace this with a database (e.g., Redis, MongoDB).
-# We will create a ChatHistory class to store the chat history later.
-chat_histories: dict = {}
+# --- Chat History Management ---
+# Using ChatHistoryProvider with LocalChatHistory backend for persistent storage
+# Can be easily switched to MongoDBChatHistory in the future
+chat_history_backend = LocalChatHistory(storage_file="history/conversations.json")
+chat_history_provider = ChatHistoryProvider(backend=chat_history_backend)
+print("--- Chat History Provider Initialized ---")
 
 
 # Initialize the core components
@@ -66,7 +70,9 @@ def _handle_tool_call_loop(conversation_id: str, initial_llm_response: str) -> d
 
     if not tool_call:
         # Not a tool call, just return the original response
-        return {"role": "assistant", "content": initial_llm_response}
+        cleaned_response = _clean_llm_response(initial_llm_response)
+        return {"role": "assistant", "content": cleaned_response}
+        
 
     # --- It is a tool call, so execute the full loop ---
     
@@ -78,26 +84,60 @@ def _handle_tool_call_loop(conversation_id: str, initial_llm_response: str) -> d
 
     # 2. Append the tool interaction to history
     # First, the assistant's decision to call the tool
-    chat_histories[conversation_id]["messages"].append({
+    cleaned_initial = _clean_llm_response(initial_llm_response)
+    chat_history_provider.add_message(conversation_id, {
         "role": "assistant",
         "content": initial_llm_response
     })
-    # Second, the result of the tool execution
-    chat_histories[conversation_id]["messages"].append({
-        "role": "tool",
+    chat_history_provider.add_message(conversation_id, {
+        "role": "tool", # TODO: Check if this is correct
         "name": tool_name,
         "content": json.dumps(tool_result, ensure_ascii=False)
     })
 
     # 3. Call LLM again to get a natural language summary
     print("Tool executed. Getting summary from LLM...")
+    conversation = chat_history_provider.get_conversation(conversation_id)
     final_llm_response_text = lm_wrapper.get_completion(
-        messages=chat_histories[conversation_id]["messages"]
+        messages=conversation["messages"]
     )
 
     # 4. Return the final, summarized response
+    cleaned_final = _clean_llm_response(final_llm_response_text)
     return {"role": "assistant", "content": final_llm_response_text}
 
+
+
+def _clean_llm_response(response: str) -> str:
+    """
+    Clean LLM response by removing special tags like <|channel|>, <|message|>, etc.
+    This is needed for models that output internal reasoning tags.
+    
+    Extracts only the final message content between the last <|message|> and text end,
+    or returns the original if no special tags are found.
+    """
+    import re
+    
+    # Pattern to match the final message after <|channel|>final<|message|>
+    final_pattern = r'<\|channel\|>final<\|message\|>(.*?)(?:<\|end\|>|$)'
+    match = re.search(final_pattern, response, re.DOTALL)
+    
+    if match:
+        # Extract the final message
+        cleaned = match.group(1).strip()
+        return cleaned
+    
+    # If no special tags found, check for any <|message|> tags
+    if '<|message|>' in response:
+        # Extract content after the last <|message|>
+        parts = response.split('<|message|>')
+        if len(parts) > 1:
+            # Get the last part and remove any trailing tags
+            cleaned = parts[-1].split('<|end|>')[0].strip()
+            return cleaned
+    
+    # No special tags, return original
+    return response
 
 # --- API Endpoints ---
 
@@ -114,16 +154,17 @@ def chat_endpoint():
     conversation_id = data.get("conversation_id")
 
     # --- Conversation Management ---
-    if not conversation_id or conversation_id not in chat_histories:
+    if not conversation_id or not chat_history_provider.conversation_exists(conversation_id):
         conversation_id = str(uuid.uuid4())
-        chat_histories[conversation_id] = {
-            "start_time": datetime.datetime.utcnow().isoformat(),
-            "messages": []
-        }
+        chat_history_provider.create_conversation(conversation_id)
 
     # Add new user messages to the history
-    chat_histories[conversation_id]["messages"].extend(user_messages)
-    full_history = chat_histories[conversation_id]["messages"]
+    for msg in user_messages:
+        chat_history_provider.add_message(conversation_id, msg)
+
+    # Get the full history
+    conversation = chat_history_provider.get_conversation(conversation_id)
+    full_history = conversation["messages"]
 
     # --- LLM and Tool Execution ---
     # NOTE: Assumes LMWrapper's get_completion is updated to handle message lists
@@ -131,7 +172,7 @@ def chat_endpoint():
     assistant_response = _handle_tool_call_loop(conversation_id, llm_response_text)
 
     # Append the final assistant's response to history
-    chat_histories[conversation_id]["messages"].append(assistant_response)
+    chat_history_provider.add_message(conversation_id, assistant_response)
     
     return jsonify({
         "conversation_id": conversation_id,
@@ -143,14 +184,7 @@ def get_conversations_list():
     """
     Returns a list of all conversations with basic metadata.
     """
-    conv_list = [
-        {
-            "id": conv_id,
-            "start_time": details["start_time"],
-            "title": details["messages"][0]["content"] if details["messages"] else "Empty Conversation"
-        }
-        for conv_id, details in chat_histories.items()
-    ]
+    conv_list = chat_history_provider.list_conversations()
     return jsonify(conv_list)
 
 
@@ -159,7 +193,7 @@ def get_conversation_history(conversation_id):
     """
     Returns the full message history for a specific conversation.
     """
-    history = chat_histories.get(conversation_id)
+    history = chat_history_provider.get_conversation(conversation_id)
     if not history:
         return jsonify({"error": "Conversation not found."}), 404
 
