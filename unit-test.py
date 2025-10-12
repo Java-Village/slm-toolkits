@@ -99,7 +99,94 @@ Then, respond with the appropriate tool call in the specified format.
 
 
 def test_chat_history():
-
-
+    """
+    Test ChatHistory functionality including:
+    1. Creating conversations
+    2. Adding messages
+    3. Retrieving conversations
+    4. Listing all conversations
+    5. Data persistence (reload test)
+    """
+    print("--- Running Test: ChatHistory ---")
+    
+    import uuid
+    from pathlib import Path
+    from utils.ChatHistory import ChatHistoryProvider, LocalChatHistory
+    
+    # Use a test file to avoid affecting real data
+    test_file = "history/test_conversations.json"
+    
+    try:
+        # Clean up test file if exists
+        test_path = Path(test_file)
+        if test_path.exists():
+            test_path.unlink()
+        
+        # 1. Initialize
+        print("\n1. Testing initialization...")
+        backend = LocalChatHistory(storage_file=test_file)
+        provider = ChatHistoryProvider(backend=backend)
+        print("   ✓ ChatHistoryProvider initialized")
+        
+        # 2. Create conversation
+        print("\n2. Testing create conversation...")
+        conv_id = str(uuid.uuid4())
+        provider.create_conversation(conv_id)
+        assert provider.conversation_exists(conv_id)
+        print(f"   ✓ Conversation created: {conv_id[:8]}...")
+        
+        # 3. Add messages
+        print("\n3. Testing add messages...")
+        provider.add_message(conv_id, {"role": "user", "content": "Hello"})
+        provider.add_message(conv_id, {"role": "assistant", "content": "Hi there!"})
+        print("   ✓ Messages added")
+        
+        # 4. Get conversation
+        print("\n4. Testing get conversation...")
+        conv = provider.get_conversation(conv_id)
+        assert conv is not None
+        assert len(conv["messages"]) == 2
+        print(f"   ✓ Retrieved conversation with {len(conv['messages'])} messages")
+        
+        # 5. List conversations
+        print("\n5. Testing list conversations...")
+        conv_list = provider.list_conversations()
+        assert len(conv_list) == 1
+        assert conv_list[0]["id"] == conv_id
+        print(f"   ✓ Listed {len(conv_list)} conversation(s)")
+        
+        # 6. Persistence test
+        print("\n6. Testing data persistence...")
+        # Reload from file
+        backend2 = LocalChatHistory(storage_file=test_file)
+        provider2 = ChatHistoryProvider(backend=backend2)
+        
+        # Verify data persisted
+        assert provider2.conversation_exists(conv_id)
+        conv_reloaded = provider2.get_conversation(conv_id)
+        assert len(conv_reloaded["messages"]) == 2
+        assert conv_reloaded["messages"][0]["content"] == "Hello"
+        print("   ✓ Data successfully persisted and reloaded")
+        
+        # 7. Error handling test
+        print("\n7. Testing error handling...")
+        try:
+            provider.create_conversation(conv_id)  # Duplicate
+            print("   ✗ Should have raised ValueError")
+        except ValueError:
+            print("   ✓ Correctly raised ValueError for duplicate conversation")
+        
+        print("\n[SUCCESS] All ChatHistory tests passed! ✅")
+        
+        # Clean up
+        if test_path.exists():
+            test_path.unlink()
+        print("   ✓ Test file cleaned up")
+        
+    except Exception as e:
+        print(f"\n[FAIL] ChatHistory test failed: {e}")
+        import traceback
+        traceback.print_exc()
 if __name__ == "__main__":
+    test_chat_history()
     test_lm_wrapper_and_tool_parsing()
