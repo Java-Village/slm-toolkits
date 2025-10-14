@@ -7,3 +7,4 @@ uvicorn
 python-dotenv
 pymongo
 requests
+flask-cors

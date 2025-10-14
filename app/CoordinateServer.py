@@ -8,7 +8,7 @@ from utils.ToolExecutor import ToolExecutor
 from utils.GPTTools import PromptBuilder, GPTParsingUtils
 from utils.ChatHistory import LocalChatHistory, ChatHistoryProvider
 
-
+from flask_cors import CORS
 import json
 
 import os
@@ -18,6 +18,8 @@ load_dotenv()
 # --- Flask App Initialization ---
 app = Flask(__name__)
 GO_SERVER_URL = os.getenv("GO_SERVER_URL")
+CORS(app)  # TODO: Configure for production and safer access for orginal endpoints from frontend
+
 
 # --- Server Configuration & Initialization ---
 # These should ideally be loaded from a configuration file or environment variables
