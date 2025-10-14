@@ -89,7 +89,7 @@ def _handle_tool_call_loop(conversation_id: str, initial_llm_response: str) -> d
     cleaned_initial = _clean_llm_response(initial_llm_response)
     chat_history_provider.add_message(conversation_id, {
         "role": "assistant",
-        "content": initial_llm_response
+        "content": cleaned_initial
     })
     chat_history_provider.add_message(conversation_id, {
         "role": "tool", # TODO: Check if this is correct
@@ -106,7 +106,7 @@ def _handle_tool_call_loop(conversation_id: str, initial_llm_response: str) -> d
 
     # 4. Return the final, summarized response
     cleaned_final = _clean_llm_response(final_llm_response_text)
-    return {"role": "assistant", "content": final_llm_response_text}
+    return {"role": "assistant", "content": cleaned_final}
 
 
 

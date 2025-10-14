@@ -48,16 +48,88 @@ class ToolExecutor:
     def find_panels(self, parameters: dict) -> dict:
         """
         Handles the 'find_panels' tool by calling GET /api/panels with optional filters.
+        Currently returns MOCK data for testing without Go Server.
         """
-        # Rename keys to match the Go API query parameters if necessary
-        query_params = {
-            "clusterid": parameters.get("cluster_id"),
-            "panelid": parameters.get("panel_id"),
-            "status": parameters.get("status"),
-        }
-        # Filter out None values so they are not included in the query string
-        cleaned_params = {k: v for k, v in query_params.items() if v is not None}
-        return self._make_request("GET", "api/panels", params=cleaned_params)
+        # TODO: Uncomment when Go Server is ready
+        # query_params = {
+        #     "clusterid": parameters.get("cluster_id"),
+        #     "panelid": parameters.get("panel_id"),
+        #     "status": parameters.get("status"),
+        # }
+        # cleaned_params = {k: v for k, v in query_params.items() if v is not None}
+        # return self._make_request("GET", "api/panels", params=cleaned_params)
+        
+        # ✅ MOCK DATA for testing
+        print(f"--- MOCK CALL ---: Finding panels with params: {parameters}")
+        
+        mock_data = [
+            {
+                "cluster_id": "CL-001",
+                "location": {"x": 3, "y": 3},
+                "panels": [
+                    {
+                        "panel_id": "P-001",
+                        "status": "clean",
+                        "latest_status_time": "2025-05-15T09:00:00Z",
+                        "most_recent_repair": "2025-04-30T13:45:00Z",
+                        "offset": {"x": -2, "y": 2},
+                        "history": [
+                            {"type": "repair", "date": "2025-04-30", "action": "replaced connector"},
+                            {"type": "inspection", "date": "2025-05-10", "result": "normal"}
+                        ]
+                    },
+                    {
+                        "panel_id": "P-002",
+                        "status": "dirty",
+                        "latest_status_time": "2025-05-14T15:30:00Z",
+                        "most_recent_repair": "2025-04-10T10:00:00Z",
+                        "offset": {"x": 2, "y": 2},
+                        "history": [
+                            {"type": "inspection", "date": "2025-05-14", "result": "dust buildup"}
+                        ]
+                    },
+                    {
+                        "panel_id": "P-003",
+                        "status": "unknown",
+                        "latest_status_time": "2025-05-13T17:20:00Z",
+                        "most_recent_repair": "2025-03-25T08:00:00Z",
+                        "offset": {"x": -2, "y": -2},
+                        "history": [
+                            {"type": "repair", "date": "2025-03-25", "action": "replaced inverter"},
+                            {"type": "inspection", "date": "2025-05-13", "result": "power loss"}
+                        ]
+                    },
+                    {
+                        "panel_id": "P-004",
+                        "status": "dirty",
+                        "latest_status_time": "2025-05-15T07:00:00Z",
+                        "most_recent_repair": "2025-01-10T12:00:00Z",
+                        "offset": {"x": 2, "y": -2},
+                        "history": [
+                            {"type": "inspection", "date": "2025-05-14", "result": "normal"}
+                        ]
+                    }
+                ]
+            }
+        ]
+        
+        # Optional: Apply simple filtering based on parameters
+        cluster_id = parameters.get("cluster_id")
+        panel_id = parameters.get("panel_id")
+        status = parameters.get("status")
+        
+        # If filters are provided, filter the mock data
+        if status:
+            # Filter panels by status
+            for cluster in mock_data:
+                cluster["panels"] = [p for p in cluster["panels"] if p["status"] == status]
+        
+        if panel_id:
+            # Filter to specific panel
+            for cluster in mock_data:
+                cluster["panels"] = [p for p in cluster["panels"] if p["panel_id"] == panel_id]
+        
+        return {"panels": mock_data}
 
     def get_panel_maintenance_history(self, parameters: dict) -> dict:
         """
