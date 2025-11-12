@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar Panel Maintenance System - Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(
+          180deg,
+          #0a0a0a 0%,
+          #1a2a1a 50%,
+          #2d3d1a 100%
+        );
+        color: #e8f5e9;
+        overflow: hidden;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: 1fr 500px;
+        height: 100vh;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      /* Dashboard Section */
+      .dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow-y: auto;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+      }
+
+      .header-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s, border-color 0.3s;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+
+      .stat-card .label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .stat-card .change {
+        font-size: 12px;
+        color: #76ff03;
+      }
+
+      .stat-card.warning .value {
+        color: #ff5252;
+      }
+
+      .stat-card.warning .change {
+        color: #ff5252;
+      }
+
+      .chart-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        height: 400px;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .chart-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .chart-header .date-range {
+        font-size: 12px;
+        color: #888;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+
+      /* ChatBox Section */
+      .chatbox-container {
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+
+      .chatbox-header {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .chatbox-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chatbox-header h2 svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scroll-behavior: smooth;
+      }
+
+      .message {
+        display: flex;
+        gap: 12px;
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.user {
+        flex-direction: row-reverse;
+      }
+
+      .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 8px;
+      }
+
+      .message-avatar svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .message.user .message-avatar {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+
+      .message.bot .message-avatar {
+        background: linear-gradient(135deg, #76ff03 0%, #64dd17 100%);
+      }
+
+      .message-content {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 12px 16px;
+        border-radius: 16px;
+        max-width: 80%;
+        line-height: 1.5;
+      }
+
+      /* Markdown content styling */
+      .message-content p {
+        margin: 0.5em 0;
+      }
+
+      .message-content ul {
+        margin: 0.5em 0;
+        padding-left: 1.5em;
+      }
+
+      .message-content li {
+        margin: 0.25em 0;
+      }
+
+      .message-content strong {
+        font-weight: 600;
+        color: #76ff03;
+      }
+
+      .message-content code {
+        background: rgba(118, 255, 3, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
+
+      /* Markdown table styling */
+      .message-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        overflow: hidden;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 0.85em;
+      }
+
+      .message-content thead {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+      }
+
+      .message-content th {
+        padding: 8px 10px;
+        text-align: left;
+        font-weight: 600;
+        color: #0a0a0a;
+        border-bottom: 2px solid rgba(118, 255, 3, 0.3);
+        white-space: nowrap;
+        font-size: 0.9em;
+      }
+
+      .message-content td {
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        white-space: nowrap;
+      }
+
+      .message-content tbody tr:hover {
+        background: rgba(118, 255, 3, 0.05);
+      }
+
+      .message-content tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* Table wrapper for horizontal scroll */
+      .message-content {
+        overflow-x: auto;
+      }
+
+      .message.user .message-content {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+
+      .message-content img {
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 12px;
+        opacity: 0;
+        animation: fadeInImage 1s ease-in forwards;
+      }
+
+      /* Tool execution status (like Cursor) */
+      .tool-execution {
+        background: rgba(118, 255, 3, 0.1);
+        border-left: 3px solid #76ff03;
+        padding: 8px 12px;
+        margin-top: 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #76ff03;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .tool-execution.warning {
+        background: rgba(255, 82, 82, 0.1);
+        border-left-color: #ff5252;
+        color: #ff5252;
+      }
+
+      .tool-details {
+        margin-top: 6px;
+        padding-left: 12px;
+        font-size: 12px;
+        color: #888;
+        font-weight: 400;
+        line-height: 1.6;
+      }
+
+      .tool-details div {
+        margin: 2px 0;
+      }
+
+      @keyframes fadeInImage {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .typing-indicator {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+
+      .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #76ff03;
+        animation: typing 1.4s infinite;
+      }
+
+      .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.8);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .input-area {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        gap: 12px;
+      }
+
+      .input-area input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+
+      .input-area input:focus {
+        border-color: #76ff03;
+      }
+
+      .input-area button {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        color: #1a1a1a;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .input-area button:hover {
+        transform: scale(1.05);
+      }
+
+      .input-area button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Status Badge */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .status-badge.warning {
+        background: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+      }
+
+      .status-badge.success {
+        background: rgba(118, 255, 3, 0.2);
+        color: #76ff03;
+      }
+
+      .status-badge .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(118, 255, 3, 0.3);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(118, 255, 3, 0.5);
+      }
+
+      /* Panel Grid Styles */
+      .panel-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 20px;
+      }
+
+      .panel-cell {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .panel-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(118, 255, 3, 0.2);
+      }
+
+      .panel-cell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          transparent 0%,
+          rgba(118, 255, 3, 0.05) 100%
+        );
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .panel-cell:hover::before {
+        opacity: 1;
+      }
+
+      .panel-cell-header {
+        font-size: 14px;
+        font-weight: 600;
+        color: #888;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .panel-cell-status {
+        font-size: 48px;
+        margin: 12px 0;
+        transition: all 0.3s;
+      }
+
+      .panel-cell-label {
+        font-size: 16px;
+        font-weight: 600;
+        margin-top: 8px;
+        text-transform: capitalize;
+      }
+
+      /* Status-specific styles */
+      .panel-cell.status-clean {
+        border-color: rgba(118, 255, 3, 0.5);
+      }
+
+      .panel-cell.status-clean .panel-cell-status {
+        color: #76ff03;
+        text-shadow: 0 0 20px rgba(118, 255, 3, 0.5);
+      }
+
+      .panel-cell.status-dirty {
+        border-color: rgba(255, 193, 7, 0.5);
+      }
+
+      .panel-cell.status-dirty .panel-cell-status {
+        color: #ffc107;
+        text-shadow: 0 0 20px rgba(255, 193, 7, 0.5);
+      }
+
+      .panel-cell.status-unknown {
+        border-color: rgba(158, 158, 158, 0.5);
+      }
+
+      .panel-cell.status-unknown .panel-cell-status {
+        color: #9e9e9e;
+        text-shadow: 0 0 20px rgba(158, 158, 158, 0.5);
+      }
+
+      .panel-cell:active {
+        transform: scale(0.95);
+      }
+
+      /* Loading state */
+      .panel-cell.loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .panel-cell.loading .panel-cell-status {
+        animation: rotate 1s linear infinite;
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Auto-suggestion Button Styles */
+      .auto-suggestion-container {
+        padding: 12px 16px;
+        margin: 8px 0;
+        background: rgba(118, 255, 3, 0.1);
+        border-left: 3px solid #76ff03;
+        border-radius: 8px;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .auto-suggestion-text {
+        font-size: 14px;
+        color: #e8f5e9;
+        margin-bottom: 10px;
+        line-height: 1.5;
+      }
+
+      .auto-suggestion-btn {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        color: #0a0a0a;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(118, 255, 3, 0.3);
+      }
+
+      .auto-suggestion-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(118, 255, 3, 0.5);
+      }
+
+      .auto-suggestion-btn:active {
+        transform: translateY(0);
+      }
+
+      .auto-suggestion-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .auto-suggestion-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Active Tasks Styles */
+      .active-tasks-container {
+        padding: 20px;
+        min-height: 100px;
+      }
+
+      .no-tasks-message {
+        text-align: center;
+        color: #888;
+        font-size: 14px;
+        padding: 20px;
+        font-style: italic;
+      }
+
+      .task-item {
+        background: rgba(118, 255, 3, 0.05);
+        border: 1px solid rgba(118, 255, 3, 0.2);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+      }
+
+      .task-item:hover {
+        background: rgba(118, 255, 3, 0.1);
+        border-color: rgba(118, 255, 3, 0.4);
+        transform: translateY(-2px);
+      }
+
+      .task-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .task-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: #76ff03;
+      }
+
+      .task-title svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .task-status {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .task-status.dispatched {
+        background: rgba(118, 255, 3, 0.2);
+        color: #76ff03;
+      }
+
+      .task-status.arrived {
+        background: rgba(33, 150, 243, 0.2);
+        color: #2196f3;
+      }
+
+      .task-status.cleaning_done {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+      }
+
+      .task-status.returned {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+
+      .task-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .task-detail-item {
+        font-size: 13px;
+      }
+
+      .task-detail-label {
+        color: #888;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .task-detail-value {
+        color: #e8f5e9;
+        font-weight: 600;
+      }
+
+      .task-progress {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .task-progress-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+
+      .task-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #76ff03 0%, #cddc39 100%);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+        animation: pulse-glow 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Dashboard Section -->
+      <div class="dashboard">
+        <div class="header">
+          <div class="header-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2V4M12 20V22M4 12H2M6.31412 6.31412L4.8999 4.8999M17.6859 6.31412L19.1001 4.8999M6.31412 17.69L4.8999 19.1042M17.6859 17.69L19.1001 19.1042M22 12H20M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1>Solar Panel Maintenance System</h1>
+            <div style="display: flex; gap: 12px; margin-top: 8px">
+              <span class="status-badge warning" id="systemStatus">
+                <span class="dot"></span>
+                System Alert
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card warning" id="powerCard">
+            <div class="label">Total Power Output</div>
+            <div class="value" id="powerValue">2.8 kW</div>
+            <div class="change" id="powerChange">↓ 35% Below Normal</div>
+          </div>
+          <div class="stat-card warning" id="efficiencyCard">
+            <div class="label">System Efficiency</div>
+            <div class="value" id="efficiencyValue">52%</div>
+            <div class="change" id="efficiencyChange">↓ Critical</div>
+          </div>
+          <div class="stat-card" id="panelsCard">
+            <div class="label">Active Panels</div>
+            <div class="value" id="panelsValue">14/18</div>
+            <div class="change" id="panelsChange">4 Panels Offline</div>
+          </div>
+          <div class="stat-card warning" id="revenueCard">
+            <div class="label">Daily Revenue</div>
+            <div class="value" id="revenueValue">$18.40</div>
+            <div class="change" id="revenueChange">↓ $12.60 Loss</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Power Generation (1hr)</h3>
+            <span class="date-range" id="dateRange">Real-time</span>
+          </div>
+          <canvas id="powerChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Panel Performance</h3>
+            <span class="date-range">Real-time</span>
+          </div>
+          <canvas id="barChart"></canvas>
+        </div>
+
+        <!-- Solar Panel Grid (2x2) -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Panel Status Grid</h3>
+            <span class="date-range">Click to toggle status</span>
+          </div>
+          <div class="panel-grid">
+            <!-- Top Row -->
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-001"
+              data-route="1"
+            >
+              <div class="panel-cell-header">Panel 1</div>
+              <div class="panel-cell-status">●</div>
+              <div class="panel-cell-label">Clean</div>
+            </div>
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-002"
+              data-route="2"
+            >
+              <div class="panel-cell-header">Panel 2</div>
+              <div class="panel-cell-status">●</div>
+              <div class="panel-cell-label">Clean</div>
+            </div>
+            <!-- Bottom Row -->
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-003"
+              data-route="3"
+            >
+              <div class="panel-cell-header">Panel 3</div>
+              <div class="panel-cell-status">●</div>
+              <div class="panel-cell-label">Clean</div>
+            </div>
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-004"
+              data-route="4"
+            >
+              <div class="panel-cell-header">Panel 4</div>
+              <div class="panel-cell-status">●</div>
+              <div class="panel-cell-label">Clean</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Tasks Display -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Active Tasks</h3>
+            <span class="date-range">Real-time</span>
+          </div>
+          <div id="activeTasksContainer" class="active-tasks-container">
+            <div class="no-tasks-message">No active tasks</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ChatBox Section -->
+      <div class="chatbox-container">
+        <div class="chatbox-header">
+          <h2>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                fill="currentColor"
+              />
+              <circle cx="9" cy="11" r="1" fill="#0a0a0a" />
+              <circle cx="15" cy="11" r="1" fill="#0a0a0a" />
+              <path
+                d="M9 15H15"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            AI Diagnostic Assistant
+          </h2>
+        </div>
+        <div class="messages" id="messages">
+          <div class="message bot">
+            <div class="message-avatar">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                  fill="currentColor"
+                />
+                <circle cx="9" cy="11" r="1.5" fill="#0a0a0a" />
+                <circle cx="15" cy="11" r="1.5" fill="#0a0a0a" />
+                <path
+                  d="M9 15H15"
+                  stroke="#0a0a0a"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <div class="message-content">
+              Hello! I'm your AI assistant. I can help diagnose and resolve
+              solar panel issues. Type your command below.
+            </div>
+          </div>
+        </div>
+        <div class="input-area">
+          <input
+            type="text"
+            id="userInput"
+            placeholder="Type 'Run a full diagnostic' to start..."
+          />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Chart Configuration
+      const chartColors = {
+        normal: {
+          line1: "rgba(118, 255, 3, 0.9)",
+          line2: "rgba(205, 220, 57, 0.9)",
+          fill1: "rgba(118, 255, 3, 0.15)",
+          fill2: "rgba(205, 220, 57, 0.15)",
+        },
+        warning: {
+          line1: "rgba(255, 82, 82, 0.8)",
+          line2: "rgba(255, 171, 64, 0.8)",
+          fill1: "rgba(255, 82, 82, 0.1)",
+          fill2: "rgba(255, 171, 64, 0.1)",
+        },
+      };
+
+      // Abnormal data (with faults) - 1 hour view
+      const abnormalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          2.8, 2.7, 2.9, 2.8, 2.6, 2.7, 2.8, 2.9, 2.7, 2.8, 2.7, 2.8, 2.7,
+        ],
+        power2: [
+          3.1, 3.0, 3.2, 3.1, 2.9, 3.0, 3.1, 3.2, 3.0, 3.1, 3.0, 3.1, 3.0,
+        ],
+      };
+
+      // Normal data (after repair) - 1 hour view
+      const normalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          4.2, 4.3, 4.5, 4.4, 4.6, 4.5, 4.7, 4.6, 4.5, 4.6, 4.7, 4.6, 4.5,
+        ],
+        power2: [
+          4.0, 4.1, 4.2, 4.1, 4.3, 4.2, 4.4, 4.3, 4.2, 4.3, 4.4, 4.3, 4.2,
+        ],
+      };
+
+      // Initialize Power Chart
+      const powerCtx = document.getElementById("powerChart").getContext("2d");
+      const powerChart = new Chart(powerCtx, {
+        type: "line",
+        data: {
+          labels: abnormalData.minutes,
+          datasets: [
+            {
+              label: "Panel Array A",
+              data: abnormalData.power1,
+              borderColor: chartColors.warning.line1,
+              backgroundColor: chartColors.warning.fill1,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+            },
+            {
+              label: "Panel Array B",
+              data: abnormalData.power2,
+              borderColor: chartColors.warning.line2,
+              backgroundColor: chartColors.warning.fill2,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: "#e0e0e0",
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              ticks: {
+                color: "#888",
+                callback: function (value) {
+                  return value + " kW";
+                },
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#888",
+              },
+            },
+          },
+        },
+      });
+
+      // Initialize Bar Chart
+      const barCtx = document.getElementById("barChart").getContext("2d");
+      const barChart = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: [
+            "P-001",
+            "P-002",
+            "P-003",
+            "P-004",
+            "P-005",
+            "P-006",
+            "P-007",
+            "P-008",
+          ],
+          datasets: [
+            {
+              label: "Efficiency (%)",
+              data: [85, 45, 88, 42, 90, 87, 89, 86],
+              backgroundColor: function (context) {
+                const value = context.parsed.y;
+                return value < 50
+                  ? "rgba(255, 82, 82, 0.8)"
+                  : "rgba(118, 255, 3, 0.8)";
+              },
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              ticks: {
+                color: "#888",
+                callback: function (value) {
+                  return value + "%";
+                },
+              },
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                color: "#888",
+              },
+            },
+          },
+        },
+      });
+
+      // Chat functionality
+      const messagesContainer = document.getElementById("messages");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+      let isDemoRunning = false;
+      let isSystemNormal = false; // Track system state
+      let chartUpdateInterval = null;
+
+      function addMessage(
+        text,
+        isUser = false,
+        hasImage = false,
+        imageSrc = "",
+        toolExecution = null
+      ) {
+        return new Promise((resolve) => {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `message ${isUser ? "user" : "bot"}`;
+
+          const avatar = document.createElement("div");
+          avatar.className = "message-avatar";
+
+          if (isUser) {
+            avatar.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="currentColor"/><path d="M12 14C6.47715 14 2 17.5817 2 22H22C22 17.5817 17.5228 14 12 14Z" fill="currentColor"/></svg>';
+          } else {
+            avatar.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>';
+          }
+
+          const content = document.createElement("div");
+          content.className = "message-content";
+
+          messageDiv.appendChild(avatar);
+          messageDiv.appendChild(content);
+          messagesContainer.appendChild(messageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          if (isUser) {
+            content.textContent = text;
+            setTimeout(() => {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              resolve();
+            }, 500);
+          } else {
+            // Streaming effect
+            let index = 0;
+            const interval = setInterval(() => {
+              if (index < text.length) {
+                content.textContent = text.substring(0, index + 1);
+                index++;
+                // Smooth auto-scroll
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              } else {
+                clearInterval(interval);
+
+                // Add tool execution status if provided
+                if (toolExecution) {
+                  const toolDiv = document.createElement("div");
+                  toolDiv.className = `tool-execution ${
+                    toolExecution.type || ""
+                  }`;
+                  toolDiv.textContent = toolExecution.title;
+
+                  if (toolExecution.details) {
+                    const detailsDiv = document.createElement("div");
+                    detailsDiv.className = "tool-details";
+                    detailsDiv.innerHTML = toolExecution.details;
+                    toolDiv.appendChild(detailsDiv);
+                  }
+
+                  content.appendChild(toolDiv);
+                  // Scroll after adding tool execution
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+
+                if (hasImage) {
+                  const img = document.createElement("img");
+                  img.src = imageSrc;
+                  img.onload = () => {
+                    // Scroll after image loads
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                  };
+                  content.appendChild(img);
+                }
+
+                setTimeout(() => {
+                  // Final scroll
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                  resolve();
+                }, 800);
+              }
+            }, 30);
+          }
+        });
+      }
+
+      function showTypingIndicator() {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message bot";
+        messageDiv.id = "typing";
+
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>';
+
+        const content = document.createElement("div");
+        content.className = "message-content";
+        content.innerHTML =
+          '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+        messagesContainer.appendChild(messageDiv);
+        // Smooth auto-scroll
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 50);
+      }
+
+      function removeTypingIndicator() {
+        const typing = document.getElementById("typing");
+        if (typing) typing.remove();
+      }
+
+      function updateStatsToNormal() {
+        // Update stat cards
+        document.getElementById("powerValue").textContent = "4.5 kW";
+        document.getElementById("powerChange").textContent = "↑ 100% Optimal";
+        document.getElementById("powerChange").style.color = "#76ff03";
+        document.getElementById("powerCard").classList.remove("warning");
+
+        document.getElementById("efficiencyValue").textContent = "94%";
+        document.getElementById("efficiencyChange").textContent = "↑ Excellent";
+        document.getElementById("efficiencyChange").style.color = "#76ff03";
+        document.getElementById("efficiencyCard").classList.remove("warning");
+
+        document.getElementById("panelsValue").textContent = "18/18";
+        document.getElementById("panelsChange").textContent = "✓ All Online";
+        document.getElementById("panelsChange").style.color = "#76ff03";
+
+        document.getElementById("revenueValue").textContent = "$31.20";
+        document.getElementById("revenueChange").textContent = "↑ Target Met";
+        document.getElementById("revenueChange").style.color = "#76ff03";
+        document.getElementById("revenueCard").classList.remove("warning");
+
+        // Update status badge
+        const statusBadge = document.getElementById("systemStatus");
+        statusBadge.className = "status-badge success";
+        statusBadge.innerHTML = '<span class="dot"></span>System Optimal';
+
+        // Animate power chart restoration
+        animateChartRestoration();
+
+        // Update bar chart
+        barChart.data.datasets[0].data = [92, 94, 93, 95, 91, 93, 94, 92];
+        barChart.data.datasets[0].backgroundColor = "rgba(118, 255, 3, 0.8)";
+        barChart.update();
+      }
+
+      // Animate chart data restoration
+      function animateChartRestoration() {
+        let step = 0;
+        const totalSteps = 20;
+        const interval = setInterval(() => {
+          if (step >= totalSteps) {
+            clearInterval(interval);
+            isSystemNormal = true; // Mark system as normal after restoration
+            return;
+          }
+
+          // Interpolate between abnormal and normal data
+          const progress = step / totalSteps;
+          const interpolatedData1 = abnormalData.power1.map((val, idx) => {
+            return val + (normalData.power1[idx] - val) * progress;
+          });
+          const interpolatedData2 = abnormalData.power2.map((val, idx) => {
+            return val + (normalData.power2[idx] - val) * progress;
+          });
+
+          // Update chart
+          powerChart.data.labels = normalData.minutes;
+          powerChart.data.datasets[0].data = interpolatedData1;
+          powerChart.data.datasets[0].borderColor = chartColors.normal.line1;
+          powerChart.data.datasets[0].backgroundColor =
+            chartColors.normal.fill1;
+          powerChart.data.datasets[1].data = interpolatedData2;
+          powerChart.data.datasets[1].borderColor = chartColors.normal.line2;
+          powerChart.data.datasets[1].backgroundColor =
+            chartColors.normal.fill2;
+          powerChart.update("none"); // No animation for smooth transition
+
+          step++;
+        }, 100);
+      }
+
+      // API Configuration
+      const API_BASE_URL = "http://localhost:8000";
+      let conversationId = null;
+      let pollingInterval = null;
+      let lastCheckTime = null;
+
+      // Markdown parsing functions
+      function parseMarkdownTable(text) {
+        // Parse Markdown tables: | Header | Header |\n|--------|--------|\n| Cell | Cell |
+        const tableRegex = /\|(.+)\|\n\|[-\s|]+\|\n((?:\|.+\|\n?)+)/g;
+        return text.replace(tableRegex, (match, header, body) => {
+          const headers = header
+            .split("|")
+            .map((h) => h.trim())
+            .filter((h) => h);
+          const headerRow =
+            "<tr>" + headers.map((h) => `<th>${h}</th>`).join("") + "</tr>";
+
+          const rows = body.trim().split("\n");
+          const bodyRows = rows
+            .map((row) => {
+              const cells = row
+                .split("|")
+                .map((c) => c.trim())
+                .filter((c) => c);
+              return (
+                "<tr>" + cells.map((c) => `<td>${c}</td>`).join("") + "</tr>"
+              );
+            })
+            .join("");
+
+          return `<table><thead>${headerRow}</thead><tbody>${bodyRows}</tbody></table>`;
+        });
+      }
+
+      function parseMarkdown(text) {
+        let html = text;
+
+        // Parse tables first
+        html = parseMarkdownTable(html);
+
+        // Bold: **text**
+        html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+        // Lists: * item
+        html = html.replace(/^\* (.+)$/gm, "<li>$1</li>");
+        html = html.replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>");
+
+        // Inline code: `code`
+        html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+        // Paragraphs (split by double newlines)
+        const parts = html.split("\n\n");
+        html = parts
+          .map((part) => {
+            if (
+              part.trim().startsWith("<table") ||
+              part.trim().startsWith("<ul")
+            ) {
+              return part;
+            }
+            return `<p>${part.replace(/\n/g, "<br>")}</p>`;
+          })
+          .join("");
+
+        return html;
+      }
+
+      // Polling for rover status updates
+      function startPolling(convId) {
+        if (pollingInterval) return; // Already polling
+
+        console.log("[Polling] Starting rover status polling");
+        lastCheckTime = new Date().toISOString();
+
+        pollingInterval = setInterval(async () => {
+          try {
+            const url = `${API_BASE_URL}/api/conversations/${convId}/recent?since=${lastCheckTime}`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Check for new rover status messages
+            const newMessages = data.messages.filter(
+              (msg) =>
+                msg.role === "system" && msg.metadata?.type === "rover_status"
+            );
+
+            // Display new status updates
+            newMessages.forEach((msg) => {
+              displayRoverStatus(msg.content, msg.metadata);
+            });
+
+            lastCheckTime = data.timestamp;
+          } catch (error) {
+            console.error("[Polling] Error:", error);
+          }
+        }, 1000); // Poll every 1 second
+      }
+
+      function stopPolling() {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+          console.log("[Polling] Stopped");
+        }
+      }
+
+      function displayRoverStatus(message, metadata) {
+        // Create a status notification in the chat
+        const statusDiv = document.createElement("div");
+        statusDiv.className = "rover-status-update";
+
+        const statusEmoji = {
+          arrived: "🤖",
+          cleaning_done: "✨",
+          returned: "🏠",
+        };
+
+        const emoji = statusEmoji[metadata.status] || "📡";
+        statusDiv.textContent = `${emoji} ${message}`;
+        statusDiv.style.cssText = `
+          padding: 10px 14px;
+          margin: 8px 0;
+          background: rgba(118, 255, 3, 0.1);
+          border-left: 3px solid #76ff03;
+          border-radius: 6px;
+          font-size: 0.9em;
+          animation: slideIn 0.3s ease-out;
+        `;
+
+        messagesContainer.appendChild(statusDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Immediately refresh active tasks when rover status updates
+        fetchActiveTasks();
+      }
+
+      // Real-time chart update function
+      function updateChartRealtime() {
+        const baseData = isSystemNormal ? normalData : abnormalData;
+
+        // Generate slight random variations for realistic effect
+        const newData1 = baseData.power1.map((val) => {
+          const variation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+          return Math.max(0, val + variation);
+        });
+
+        const newData2 = baseData.power2.map((val) => {
+          const variation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+          return Math.max(0, val + variation);
+        });
+
+        // Update chart with new data
+        powerChart.data.datasets[0].data = newData1;
+        powerChart.data.datasets[1].data = newData2;
+        powerChart.update("none"); // Smooth update without animation
+      }
+
+      // Start real-time updates
+      function startChartUpdates() {
+        if (chartUpdateInterval) {
+          clearInterval(chartUpdateInterval);
+        }
+        chartUpdateInterval = setInterval(updateChartRealtime, 200); // Update 5 times per second
+      }
+
+      // Stop real-time updates
+      function stopChartUpdates() {
+        if (chartUpdateInterval) {
+          clearInterval(chartUpdateInterval);
+          chartUpdateInterval = null;
+        }
+      }
+
+      // Image URL mapping based on tool calls
+      const IMAGE_MAPPING = {
+        detect_panel_faults:
+          "https://cdn.discordapp.com/attachments/1240495004389085184/1436490171301494914/yolo.jpg?ex=690fcb39&is=690e79b9&hm=1ec2463fdf4ccc3592b2fa4e196c66885275af0676c8dad6717b2fe92988082b&",
+        rover_task_complete:
+          "../outside/coordination-server/images/panel_healthy.png",
+        dispatch_drone_to_cluster:
+          "https://cdn.discordapp.com/attachments/1240495004389085184/1436490171301494914/yolo.jpg?ex=690fcb39&is=690e79b9&hm=1ec2463fdf4ccc3592b2fa4e196c66885275af0676c8dad6717b2fe92988082b&",
+      };
+
+      // Send message to real API with SSE streaming
+      async function sendMessageToAPI(messageText) {
+        if (!messageText.trim()) return;
+
+        // Add user message to UI
+        const userMsgDiv = createMessageElement(messageText, true);
+        messagesContainer.appendChild(userMsgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messages: [{ role: "user", content: messageText }],
+              conversation_id: conversationId,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          removeTypingIndicator();
+
+          // Don't create bot message immediately - wait to see if there's a tool call
+          let botMsgDiv = null;
+          let contentDiv = null;
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let currentText = "";
+          let currentToolCall = null;
+          let toolResult = null;
+          let currentToolMsgDiv = null; // Separate message for tool execution
+          let hasToolCall = false; // Track if we've seen a tool call
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              if (!line.trim() || !line.startsWith("data: ")) continue;
+
+              try {
+                const data = JSON.parse(line.slice(6)); // Remove "data: " prefix
+
+                switch (data.type) {
+                  case "conversation_id":
+                    conversationId = data.id;
+                    console.log("Conversation ID:", conversationId);
+                    break;
+
+                  case "token":
+                    currentText += data.content;
+
+                    // Create bot message if not exists
+                    // If there's a tool call, create it after the tool message
+                    if (!botMsgDiv) {
+                      botMsgDiv = createMessageElement("", false);
+                      // If there's a tool message, insert after it; otherwise append normally
+                      if (currentToolMsgDiv) {
+                        currentToolMsgDiv.insertAdjacentElement(
+                          "afterend",
+                          botMsgDiv
+                        );
+                      } else {
+                        messagesContainer.appendChild(botMsgDiv);
+                      }
+                      contentDiv = botMsgDiv.querySelector(".message-content");
+                    }
+
+                    // Parse and render Markdown (including tables)
+                    contentDiv.innerHTML = parseMarkdown(currentText);
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                    break;
+
+                  case "tool_call":
+                    console.log("Tool call:", data.tool_name, data.parameters);
+                    currentToolCall = data;
+                    hasToolCall = true;
+
+                    // Create a separate bot message for tool execution
+                    currentToolMsgDiv = createMessageElement("", false);
+                    messagesContainer.appendChild(currentToolMsgDiv);
+                    const toolContentDiv =
+                      currentToolMsgDiv.querySelector(".message-content");
+
+                    // Format tool name for display
+                    const toolDisplayName = data.tool_name
+                      .split("_")
+                      .map(
+                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                      )
+                      .join(" ");
+
+                    // Create tool execution display
+                    toolContentDiv.innerHTML = `
+                      <div class="tool-execution">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px; color: #76ff03;">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          <strong style="color: #76ff03;">Executing: ${toolDisplayName}</strong>
+                        </div>
+                        <div class="tool-details" style="background: rgba(118, 255, 3, 0.05); padding: 8px; border-radius: 6px; margin-top: 8px;">
+                          <div style="font-size: 0.9em; color: #888; margin-bottom: 4px;">Parameters:</div>
+                          <pre style="margin: 0; font-size: 0.85em; color: #e8f5e9; white-space: pre-wrap; word-wrap: break-word;">${JSON.stringify(
+                            data.parameters,
+                            null,
+                            2
+                          )}</pre>
+                        </div>
+                        <div style="margin-top: 8px; color: #888; font-size: 0.85em;">⏳ Processing...</div>
+                      </div>
+                    `;
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                    break;
+
+                  case "tool_result":
+                    console.log("Tool result:", data.result);
+                    toolResult = data.result;
+
+                    // Update the tool message with result
+                    if (currentToolMsgDiv) {
+                      const toolContentDiv =
+                        currentToolMsgDiv.querySelector(".message-content");
+
+                      // Format result for display
+                      let resultDisplay = "";
+                      if (data.result && typeof data.result === "object") {
+                        // Format dashboard status nicely
+                        if (data.result.dashboard) {
+                          const dash = data.result.dashboard;
+                          resultDisplay = `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                              <div style="color: #76ff03; font-weight: 600; margin-bottom: 8px;">✓ Execution Complete</div>
+                              <div style="background: rgba(118, 255, 3, 0.05); padding: 10px; border-radius: 6px; font-size: 0.9em;">
+                                <div><strong>Power Output:</strong> ${
+                                  dash.total_power_output_kw
+                                } kW</div>
+                                <div><strong>Efficiency:</strong> ${
+                                  dash.system_efficiency_percent
+                                }%</div>
+                                <div><strong>Active Panels:</strong> ${
+                                  dash.active_panels
+                                }</div>
+                                <div><strong>Dirty Panels:</strong> ${
+                                  dash.dirty_panel_count
+                                }</div>
+                                ${
+                                  data.result.summary
+                                    ? `<div style="margin-top: 8px; color: #888; font-style: italic;">${data.result.summary}</div>`
+                                    : ""
+                                }
+                              </div>
+                            </div>
+                          `;
+                        } else if (
+                          data.result.status === "dispatched" ||
+                          data.result.task_id
+                        ) {
+                          // Rover dispatch result
+                          resultDisplay = `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                              <div style="color: #76ff03; font-weight: 600; margin-bottom: 8px;">✓ Rover Dispatched</div>
+                              <div style="background: rgba(118, 255, 3, 0.05); padding: 10px; border-radius: 6px; font-size: 0.9em;">
+                                <div><strong>Task ID:</strong> ${
+                                  data.result.task_id || "N/A"
+                                }</div>
+                                <div><strong>Panel:</strong> ${
+                                  data.result.panel_id || "N/A"
+                                }</div>
+                                <div><strong>Status:</strong> ${
+                                  data.result.status || "dispatched"
+                                }</div>
+                              </div>
+                            </div>
+                          `;
+                        } else if (
+                          data.result.panels ||
+                          (Array.isArray(data.result) && data.result[0]?.panels)
+                        ) {
+                          // Panel search result
+                          const panelsData =
+                            data.result.panels || data.result[0]?.panels || [];
+                          const allPanels = panelsData.flatMap(
+                            (cluster) => cluster.panels || []
+                          );
+                          const dirtyCount = allPanels.filter(
+                            (p) => p.status === "dirty"
+                          ).length;
+                          const cleanCount = allPanels.filter(
+                            (p) => p.status === "clean"
+                          ).length;
+
+                          resultDisplay = `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                              <div style="color: #76ff03; font-weight: 600; margin-bottom: 8px;">✓ Found ${
+                                allPanels.length
+                              } Panel(s)</div>
+                              <div style="background: rgba(118, 255, 3, 0.05); padding: 10px; border-radius: 6px; font-size: 0.9em;">
+                                <div><strong>Total:</strong> ${
+                                  allPanels.length
+                                } panels</div>
+                                <div><strong>Clean:</strong> ${cleanCount}</div>
+                                <div><strong>Dirty:</strong> ${dirtyCount}</div>
+                                ${
+                                  dirtyCount > 0
+                                    ? `<div style="margin-top: 8px; color: #ffc107;">⚠️ ${dirtyCount} panel(s) need cleaning</div>`
+                                    : ""
+                                }
+                              </div>
+                            </div>
+                          `;
+                        } else {
+                          // Generic result
+                          resultDisplay = `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                              <div style="color: #76ff03; font-weight: 600; margin-bottom: 8px;">✓ Execution Complete</div>
+                              <pre style="background: rgba(118, 255, 3, 0.05); padding: 10px; border-radius: 6px; font-size: 0.85em; margin: 0; white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto;">${JSON.stringify(
+                                data.result,
+                                null,
+                                2
+                              )}</pre>
+                            </div>
+                          `;
+                        }
+                      } else {
+                        resultDisplay = `
+                          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="color: #76ff03; font-weight: 600;">✓ Execution Complete</div>
+                            <div style="margin-top: 8px; color: #888; font-size: 0.9em;">${String(
+                              data.result
+                            )}</div>
+                          </div>
+                        `;
+                      }
+
+                      // Replace "Processing..." with result
+                      toolContentDiv.innerHTML =
+                        toolContentDiv.innerHTML.replace(
+                          /<div style="margin-top: 8px; color: #888; font-size: 0.85em;">⏳ Processing\.\.\.<\/div>/,
+                          resultDisplay
+                        );
+
+                      messagesContainer.scrollTop =
+                        messagesContainer.scrollHeight;
+                    }
+
+                    // Check if this is a rover task - start polling
+                    if (
+                      currentToolCall &&
+                      currentToolCall.tool_name === "dispatch_rover_to_panel" &&
+                      data.result &&
+                      data.result.task_id
+                    ) {
+                      console.log(
+                        "[Rover] Detected rover task, starting polling:",
+                        data.result.task_id
+                      );
+                      startPolling(conversationId);
+                      // Immediately refresh active tasks
+                      fetchActiveTasks();
+                    }
+
+                    // Check if we should display an image (add to tool message, not main message)
+                    if (
+                      currentToolCall &&
+                      IMAGE_MAPPING[currentToolCall.tool_name] &&
+                      currentToolMsgDiv
+                    ) {
+                      const toolContentDiv =
+                        currentToolMsgDiv.querySelector(".message-content");
+                      const img = document.createElement("img");
+                      img.src = IMAGE_MAPPING[currentToolCall.tool_name];
+                      img.style.marginTop = "10px";
+                      img.style.maxWidth = "100%";
+                      img.style.borderRadius = "8px";
+                      img.onload = () => {
+                        messagesContainer.scrollTop =
+                          messagesContainer.scrollHeight;
+                      };
+                      toolContentDiv.appendChild(img);
+                    }
+
+                    // After tool result, if there are subsequent LLM tokens,
+                    // they should appear after the tool message
+                    // The botMsgDiv will be created in the token handler if needed
+                    currentText = "";
+                    // Don't clear currentToolMsgDiv yet - keep reference for positioning
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                    break;
+
+                  case "done":
+                    console.log("Streaming complete");
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                    break;
+
+                  case "error":
+                    console.error("Server error:", data.message);
+                    // Create bot message if not exists
+                    if (!botMsgDiv) {
+                      botMsgDiv = createMessageElement("", false);
+                      if (currentToolMsgDiv) {
+                        currentToolMsgDiv.insertAdjacentElement(
+                          "afterend",
+                          botMsgDiv
+                        );
+                      } else {
+                        messagesContainer.appendChild(botMsgDiv);
+                      }
+                      contentDiv = botMsgDiv.querySelector(".message-content");
+                    }
+                    contentDiv.textContent = `Error: ${data.message}`;
+                    break;
+                }
+              } catch (e) {
+                console.error("Failed to parse SSE message:", line, e);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error sending message:", error);
+          removeTypingIndicator();
+
+          const errorMsgDiv = createMessageElement(
+            `Error: ${error.message}. Please ensure the backend is running on ${API_BASE_URL}.`,
+            false
+          );
+          messagesContainer.appendChild(errorMsgDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+
+      // Create message element
+      function createMessageElement(text, isUser) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isUser ? "user" : "bot"}`;
+
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+
+        if (isUser) {
+          avatar.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="currentColor"/><path d="M12 14C6.47715 14 2 17.5817 2 22H22C22 17.5817 17.5228 14 12 14Z" fill="currentColor"/></svg>';
+        } else {
+          avatar.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>';
+        }
+
+        const content = document.createElement("div");
+        content.className = "message-content";
+        content.textContent = text;
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+
+        return messageDiv;
+      }
+
+      async function runDiagnosticDemo() {
+        if (isDemoRunning) return;
+        isDemoRunning = true;
+        sendBtn.disabled = true;
+        userInput.disabled = true;
+
+        // Step 1: User question
+        await addMessage("Run a full diagnostic", true);
+
+        // Step 2: Dispatching
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Initiating full system diagnostic...",
+          false,
+          false,
+          "",
+          {
+            title: "run_system_diagnostic",
+            details:
+              "<div>✓ Scanning panel array</div><div>✓ Analyzing power output</div><div>✓ Checking sensor data</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Step 3: Fault detected with image
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Fault detected in panels P-002.\n\nIssue: Dust accumulation and debris blocking solar cells.\nEstimated power loss: 35%\n\nInitiating drone deployment for inspection...",
+          false,
+          true,
+          "https://cdn.discordapp.com/attachments/1240495004389085184/1436490171301494914/yolo.jpg?ex=690fcb39&is=690e79b9&hm=1ec2463fdf4ccc3592b2fa4e196c66885275af0676c8dad6717b2fe92988082b&",
+          {
+            title: "detect_panel_faults",
+            type: "warning",
+            details:
+              "<div>Panels affected: P-002, P-004</div><div>Issue: Dust accumulation</div><div>Power loss: 35%</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        // Step 4: Rover deployment
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Deploying maintenance rover to affected panels...",
+          false,
+          false,
+          "",
+          {
+            title: "deploy_rover",
+            details:
+              "<div>✓ Route calculated</div><div>✓ Rover en route</div><div>✓ ETA: 2 minutes</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        // Step 5: Rover completed with image
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Rover has completed cleaning operations.\n\nPanels cleaned: P-002, P-004\nReturning to base station...",
+          false,
+          true,
+          "../outside/coordination-server/images/panel_healthy.png",
+          {
+            title: "rover_task_complete",
+            details:
+              "<div>✓ Panels cleaned: P-002, P-004</div><div>✓ Rover returning to base</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Step 6: System restored
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+
+        // Update dashboard to normal
+        updateStatsToNormal();
+
+        await addMessage(
+          "All systems are now functioning within optimal parameters.\n\nDiagnostic complete. System operating normally.",
+          false,
+          false,
+          "",
+          {
+            title: "verify_system_status",
+            details:
+              "<div>✓ Power output: 4.5 kW (100%)</div><div>✓ System efficiency: 94%</div><div>✓ All panels online: 18/18</div><div>✓ Revenue target: Met</div>",
+          }
+        );
+
+        sendBtn.disabled = false;
+        userInput.disabled = false;
+        userInput.value = "";
+        userInput.placeholder = "Type your message...";
+        isDemoRunning = false;
+      }
+
+      // Event listeners - Switch between demo and real API
+      const USE_DEMO_MODE = false; // Set to false to use real API
+
+      sendBtn.addEventListener("click", (e) => {
+        e.preventDefault(); // Prevent any default button behavior
+        const message = userInput.value.trim();
+
+        if (!message) return;
+
+        if (USE_DEMO_MODE) {
+          // Demo mode - hardcoded flow
+          if (
+            message.toLowerCase().includes("diagnostic") ||
+            message.toLowerCase().includes("run")
+          ) {
+            runDiagnosticDemo();
+          }
+        } else {
+          // Real API mode
+          userInput.value = "";
+          userInput.disabled = true;
+          sendBtn.disabled = true;
+
+          sendMessageToAPI(message).finally(() => {
+            // Re-enable input after response completes
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+          });
+        }
+      });
+
+      userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendBtn.click();
+        }
+      });
+
+      // ===== PANEL GRID FUNCTIONALITY =====
+
+      // Fetch and update panel status from backend
+      async function fetchPanelStatus() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/panels/status`);
+          if (response.ok) {
+            const data = await response.json();
+            updatePanelGrid(data.panels);
+            console.log(
+              "[Panel Grid] Status fetched:",
+              data.panels.length,
+              "panels"
+            );
+          }
+        } catch (error) {
+          console.error("[Panel Grid] Failed to fetch status:", error);
+        }
+      }
+
+      // Update panel grid UI with current status
+      function updatePanelGrid(panels) {
+        const panelCells = document.querySelectorAll(".panel-cell");
+        let hasDirtyPanels = false;
+
+        panelCells.forEach((cell) => {
+          const panelId = cell.getAttribute("data-panel-id");
+          const panel = panels.find((p) => p.panel_id === panelId);
+
+          if (panel) {
+            const status = panel.status.toLowerCase();
+            const label = cell.querySelector(".panel-cell-label");
+
+            // Update label text
+            label.textContent =
+              panel.status.charAt(0).toUpperCase() + panel.status.slice(1);
+
+            // Remove all status classes
+            cell.classList.remove(
+              "status-clean",
+              "status-dirty",
+              "status-unknown"
+            );
+
+            // Add current status class
+            cell.classList.add(`status-${status}`);
+
+            // Check for dirty panels
+            if (status === "dirty") {
+              hasDirtyPanels = true;
+            }
+          }
+        });
+
+        // Show/hide auto-suggestion button based on dirty panels
+        updateAutoSuggestionButton(hasDirtyPanels);
+
+        // Update dashboard display based on dirty panels
+        updateDashboardForDirtyPanels(panels);
+      }
+
+      // Update dashboard values when dirty panels are detected
+      async function updateDashboardForDirtyPanels(panels) {
+        const dirtyCount = panels.filter((p) => p.status === "dirty").length;
+
+        if (dirtyCount > 0) {
+          // Fetch dashboard status from backend
+          try {
+            const response = await fetch(
+              `${API_BASE_URL}/api/dashboard/status`
+            );
+            if (response.ok) {
+              const dashboard = await response.json();
+
+              // Update dashboard display
+              document.getElementById(
+                "powerValue"
+              ).textContent = `${dashboard.total_power_output} kW`;
+              document.getElementById(
+                "efficiencyValue"
+              ).textContent = `${dashboard.system_efficiency}%`;
+              document.getElementById("panelsValue").textContent =
+                dashboard.active_panels;
+              document.getElementById(
+                "revenueValue"
+              ).textContent = `$${dashboard.daily_revenue}`;
+
+              // Update change indicators
+              const powerChange = document.getElementById("powerChange");
+              const efficiencyChange =
+                document.getElementById("efficiencyChange");
+              const revenueChange = document.getElementById("revenueChange");
+
+              if (
+                dashboard.total_power_output < dashboard.normal_power_output
+              ) {
+                const reduction = Math.round(
+                  (1 -
+                    dashboard.total_power_output /
+                      dashboard.normal_power_output) *
+                    100
+                );
+                powerChange.textContent = `↓ ${reduction}% Below Normal`;
+                powerChange.parentElement.classList.add("warning");
+              }
+
+              if (dashboard.system_efficiency < dashboard.normal_efficiency) {
+                efficiencyChange.textContent = `↓ Critical`;
+                efficiencyChange.parentElement.classList.add("warning");
+              }
+
+              if (dashboard.daily_revenue < dashboard.normal_revenue) {
+                const loss = (
+                  dashboard.normal_revenue - dashboard.daily_revenue
+                ).toFixed(2);
+                revenueChange.textContent = `↓ $${loss} Loss`;
+                revenueChange.parentElement.classList.add("warning");
+              }
+            }
+          } catch (error) {
+            console.error("[Dashboard] Failed to update:", error);
+          }
+        } else {
+          // Reset to normal values when no dirty panels
+          const normalPower = 4.3;
+          const normalEfficiency = 85;
+          const normalRevenue = 31.0;
+
+          document.getElementById(
+            "powerValue"
+          ).textContent = `${normalPower} kW`;
+          document.getElementById(
+            "efficiencyValue"
+          ).textContent = `${normalEfficiency}%`;
+          document.getElementById("panelsValue").textContent = "4/4";
+          document.getElementById(
+            "revenueValue"
+          ).textContent = `$${normalRevenue}`;
+
+          // Remove warning classes
+          document.getElementById("powerCard").classList.remove("warning");
+          document.getElementById("efficiencyCard").classList.remove("warning");
+          document.getElementById("revenueCard").classList.remove("warning");
+
+          document.getElementById("powerChange").textContent = "✓ Normal";
+          document.getElementById("efficiencyChange").textContent = "✓ Optimal";
+          document.getElementById("revenueChange").textContent = "✓ On Target";
+        }
+      }
+
+      // Show or hide auto-suggestion button for dirty panels
+      function updateAutoSuggestionButton(hasDirtyPanels) {
+        const messagesContainer = document.getElementById("messages");
+        let suggestionContainer = document.getElementById(
+          "autoSuggestionContainer"
+        );
+
+        if (hasDirtyPanels) {
+          // Create or show suggestion button
+          if (!suggestionContainer) {
+            suggestionContainer = document.createElement("div");
+            suggestionContainer.id = "autoSuggestionContainer";
+            suggestionContainer.className = "auto-suggestion-container";
+
+            const textDiv = document.createElement("div");
+            textDiv.className = "auto-suggestion-text";
+            textDiv.textContent =
+              "⚠️ Dirty panels detected! System performance is reduced. Would you like me to dispatch the rover to clean them?";
+
+            const button = document.createElement("button");
+            button.className = "auto-suggestion-btn";
+            button.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Dispatch Rover to Clean Dirty Panels
+            `;
+
+            button.addEventListener("click", async () => {
+              button.disabled = true;
+              const originalHTML = button.innerHTML;
+              button.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: rotate 1s linear infinite;">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="31.416" stroke-dashoffset="31.416">
+                    <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416;0 31.416" repeatCount="indefinite"/>
+                    <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416;-31.416" repeatCount="indefinite"/>
+                  </circle>
+                </svg>
+                Processing...
+              `;
+
+              try {
+                // Send message to LLM - it will check status first, then dispatch
+                const message =
+                  "Please check the current panel status and dispatch the rover to clean any dirty panels. Note that we only have one rover, so please dispatch to one panel at a time.";
+
+                // Ensure chatbox is visible and scrolled to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Send message - this will add user message and LLM response to chatbox
+                await sendMessageToAPI(message);
+              } catch (error) {
+                console.error("[Auto-Suggestion] Error:", error);
+                // Show error in chatbox
+                const errorMsgDiv = createMessageElement(
+                  `Error dispatching rover: ${error.message}`,
+                  false
+                );
+                messagesContainer.appendChild(errorMsgDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              } finally {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+              }
+            });
+
+            suggestionContainer.appendChild(textDiv);
+            suggestionContainer.appendChild(button);
+            messagesContainer.appendChild(suggestionContainer);
+          } else {
+            // Show existing container
+            suggestionContainer.style.display = "block";
+          }
+        } else {
+          // Hide suggestion button if no dirty panels
+          if (suggestionContainer) {
+            suggestionContainer.style.display = "none";
+          }
+        }
+
+        // Scroll to bottom to show suggestion
+        if (hasDirtyPanels) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+
+      // Toggle panel status on click (clean → dirty → unknown → clean)
+      async function togglePanelStatus(panelId, currentStatus) {
+        const statusOrder = ["clean", "dirty", "unknown"];
+        const currentIndex = statusOrder.indexOf(currentStatus.toLowerCase());
+        const nextIndex = (currentIndex + 1) % statusOrder.length;
+        const newStatus = statusOrder[nextIndex];
+
+        console.log(
+          `[Panel Grid] Toggling ${panelId}: ${currentStatus} → ${newStatus}`
+        );
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/panels/status`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              panel_id: panelId,
+              status: newStatus,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`[Panel Grid] ✓ Status updated:`, data);
+
+            // Refresh panel status
+            await fetchPanelStatus();
+          } else {
+            console.error(
+              "[Panel Grid] Failed to update status:",
+              response.statusText
+            );
+          }
+        } catch (error) {
+          console.error("[Panel Grid] Error updating status:", error);
+        }
+      }
+
+      // ===== ACTIVE TASKS FUNCTIONALITY =====
+
+      let activeTasksInterval = null;
+
+      // Fetch and display active tasks
+      async function fetchActiveTasks() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/tasks/active`);
+          if (response.ok) {
+            const data = await response.json();
+            updateActiveTasksDisplay(data.active_tasks || []);
+          }
+        } catch (error) {
+          console.error("[Active Tasks] Failed to fetch:", error);
+        }
+      }
+
+      // Update active tasks display
+      function updateActiveTasksDisplay(tasks) {
+        const container = document.getElementById("activeTasksContainer");
+
+        if (!tasks || tasks.length === 0) {
+          container.innerHTML =
+            '<div class="no-tasks-message">No active tasks</div>';
+          return;
+        }
+
+        container.innerHTML = tasks
+          .map((task) => {
+            const status = task.status || "dispatched";
+            const statusLabels = {
+              dispatched: "En Route",
+              arrived: "Arrived",
+              cleaning_done: "Cleaning Done",
+              returned: "Returned",
+            };
+
+            // Calculate progress based on status
+            const progressMap = {
+              dispatched: 25,
+              arrived: 50,
+              cleaning_done: 75,
+              returned: 100,
+            };
+            const progress = progressMap[status] || 0;
+
+            // Format time
+            const lastUpdate = task.last_update
+              ? new Date(task.last_update).toLocaleTimeString()
+              : "N/A";
+            const createdAt = task.created_at
+              ? new Date(task.created_at).toLocaleTimeString()
+              : "N/A";
+
+            // Task type icon
+            const taskIcon =
+              task.type === "rover"
+                ? `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          `
+                : `
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="9" r="2.5" fill="currentColor"/>
+            </svg>
+          `;
+
+            return `
+            <div class="task-item">
+              <div class="task-header">
+                <div class="task-title">
+                  ${taskIcon}
+                  <span>${task.type === "rover" ? "Rover" : "Drone"} Task</span>
+                </div>
+                <div class="task-status ${status}">${
+              statusLabels[status] || status
+            }</div>
+              </div>
+              <div class="task-details">
+                <div class="task-detail-item">
+                  <div class="task-detail-label">Task ID</div>
+                  <div class="task-detail-value">${
+                    task.task_id?.substring(0, 8) || "N/A"
+                  }...</div>
+                </div>
+                <div class="task-detail-item">
+                  <div class="task-detail-label">Panel</div>
+                  <div class="task-detail-value">${task.panel_id || "N/A"}</div>
+                </div>
+                <div class="task-detail-item">
+                  <div class="task-detail-label">Route</div>
+                  <div class="task-detail-value">#${
+                    task.route_number || "N/A"
+                  }</div>
+                </div>
+                <div class="task-detail-item">
+                  <div class="task-detail-label">Last Update</div>
+                  <div class="task-detail-value">${lastUpdate}</div>
+                </div>
+              </div>
+              ${
+                progress < 100
+                  ? `
+                <div class="task-progress">
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 4px;">
+                    <span>Progress</span>
+                    <span>${progress}%</span>
+                  </div>
+                  <div class="task-progress-bar">
+                    <div class="task-progress-fill" style="width: ${progress}%"></div>
+                  </div>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          `;
+          })
+          .join("");
+      }
+
+      // Start polling for active tasks
+      function startActiveTasksPolling() {
+        // Initial fetch
+        fetchActiveTasks();
+
+        // Poll every 2 seconds
+        if (activeTasksInterval) {
+          clearInterval(activeTasksInterval);
+        }
+        activeTasksInterval = setInterval(fetchActiveTasks, 2000);
+
+        console.log("[Active Tasks] Started polling");
+      }
+
+      // Stop polling
+      function stopActiveTasksPolling() {
+        if (activeTasksInterval) {
+          clearInterval(activeTasksInterval);
+          activeTasksInterval = null;
+          console.log("[Active Tasks] Stopped polling");
+        }
+      }
+
+      // Add click listeners to all panel cells
+      function initPanelGrid() {
+        const panelCells = document.querySelectorAll(".panel-cell");
+
+        panelCells.forEach((cell) => {
+          cell.addEventListener("click", async () => {
+            if (cell.classList.contains("loading")) return;
+
+            const panelId = cell.getAttribute("data-panel-id");
+            const label = cell.querySelector(".panel-cell-label");
+            const currentStatus = label.textContent.toLowerCase();
+
+            // Add loading state
+            cell.classList.add("loading");
+
+            try {
+              await togglePanelStatus(panelId, currentStatus);
+            } finally {
+              cell.classList.remove("loading");
+            }
+          });
+        });
+
+        // Initial fetch
+        fetchPanelStatus();
+
+        // Refresh every 5 seconds
+        setInterval(fetchPanelStatus, 5000);
+
+        console.log("[Panel Grid] Initialized");
+      }
+
+      // Start real-time chart updates when page loads
+      window.addEventListener("load", () => {
+        startChartUpdates();
+        initPanelGrid(); // Initialize panel grid
+        startActiveTasksPolling(); // Start active tasks polling
+      });
+
+      // Clean up on page unload
+      window.addEventListener("beforeunload", () => {
+        stopChartUpdates();
+        stopActiveTasksPolling();
+      });
+    </script>
+  </body>
+</html>

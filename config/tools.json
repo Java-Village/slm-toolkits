@@ -1,7 +1,7 @@
 [
   {
     "name": "find_panels",
-    "description": "Find solar panels based on various filter criteria. Can be used to list all panels, find panels in a specific cluster, or find panels with a certain status.",
+    "description": "Find solar panels based on various filter criteria. Can be used to list all panels, find panels in a specific cluster, or find panels with a certain status. If user does not provide any filter criteria, return all panels.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -12,12 +12,8 @@
         "panel_id": {
           "type": "integer",
           "description": "The ID of a specific panel within a cluster. Requires cluster_id to be set."
-        },
-        "status": {
-          "type": "string",
-          "description": "Filter panels by their status.",
-          "enum": ["healthy", "dirty"]
         }
+     
       },
       "required": []
     }
@@ -61,15 +57,15 @@
       "type": "object",
       "properties": {
         "cluster_id": {
-          "type": "integer",
+          "type": "string",
           "description": "The cluster ID of the target panel."
         },
         "panel_id": {
-          "type": "integer",
+          "type": "string",
           "description": "The panel ID of the target panel."
         }
       },
-      "required": ["cluster_id", "panel_id"]
+      "required": ["cluster_id"]
     }
   },
   {
@@ -87,6 +83,15 @@
           "description": "Filter logs by the drone's target destination cluster ID."
         }
       },
+      "required": []
+    }
+  },
+  {
+    "name": "get_dashboard_status",
+    "description": "Get current system dashboard status including power output, efficiency, active panels, daily revenue, and dirty panel count. Use this to understand overall system health and performance metrics.",
+    "parameters": {
+      "type": "object",
+      "properties": {},
       "required": []
     }
   }

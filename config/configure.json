@@ -1,10 +1,10 @@
 {
-  "lm_api_url": "http://localhost:1234/v1/",
-  "provider": "local",
-  "model": "openai_gpt-oss-20b",
+  "lm_api_url": "https://api.openai.com/v1",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+
   "request_options": {
     "temperature": 0.7,
-    "max_tokens": 1024,
-    "stream": false
+    "max_tokens": 1024
   }
 }

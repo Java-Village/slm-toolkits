@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar Panel Maintenance System - Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(
+          180deg,
+          #0a0a0a 0%,
+          #1a2a1a 50%,
+          #2d3d1a 100%
+        );
+        color: #e8f5e9;
+        overflow: hidden;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: 1fr 500px;
+        height: 100vh;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      /* Dashboard Section */
+      .dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow-y: auto;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+      }
+
+      .header-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+      }
+
+      .header-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s, border-color 0.3s;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+
+      .stat-card .label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .stat-card .change {
+        font-size: 12px;
+        color: #76ff03;
+      }
+
+      .stat-card.warning .value {
+        color: #ff5252;
+      }
+
+      .stat-card.warning .change {
+        color: #ff5252;
+      }
+
+      .chart-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        height: 400px;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .chart-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .chart-header .date-range {
+        font-size: 12px;
+        color: #888;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+
+      /* ChatBox Section */
+      .chatbox-container {
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+
+      .chatbox-header {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .chatbox-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chatbox-header h2 svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scroll-behavior: smooth;
+      }
+
+      .message {
+        display: flex;
+        gap: 12px;
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.user {
+        flex-direction: row-reverse;
+      }
+
+      .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 8px;
+      }
+
+      .message-avatar svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .message.user .message-avatar {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+
+      .message.bot .message-avatar {
+        background: linear-gradient(135deg, #76ff03 0%, #64dd17 100%);
+      }
+
+      .message-content {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 12px 16px;
+        border-radius: 16px;
+        max-width: 80%;
+        line-height: 1.5;
+      }
+
+      .message.user .message-content {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+
+      .message-content img {
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 12px;
+        opacity: 0;
+        animation: fadeInImage 1s ease-in forwards;
+      }
+
+      /* Tool execution status (like Cursor) */
+      .tool-execution {
+        background: rgba(118, 255, 3, 0.1);
+        border-left: 3px solid #76ff03;
+        padding: 8px 12px;
+        margin-top: 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #76ff03;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .tool-execution.warning {
+        background: rgba(255, 82, 82, 0.1);
+        border-left-color: #ff5252;
+        color: #ff5252;
+      }
+
+      .tool-details {
+        margin-top: 6px;
+        padding-left: 12px;
+        font-size: 12px;
+        color: #888;
+        font-weight: 400;
+        line-height: 1.6;
+      }
+
+      .tool-details div {
+        margin: 2px 0;
+      }
+
+      @keyframes fadeInImage {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .typing-indicator {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+
+      .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #76ff03;
+        animation: typing 1.4s infinite;
+      }
+
+      .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.8);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .input-area {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        gap: 12px;
+      }
+
+      .input-area input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+
+      .input-area input:focus {
+        border-color: #76ff03;
+      }
+
+      .input-area button {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        color: #1a1a1a;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .input-area button:hover {
+        transform: scale(1.05);
+      }
+
+      .input-area button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Status Badge */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .status-badge.warning {
+        background: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+      }
+
+      .status-badge.success {
+        background: rgba(118, 255, 3, 0.2);
+        color: #76ff03;
+      }
+
+      .status-badge .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(118, 255, 3, 0.3);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(118, 255, 3, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Dashboard Section -->
+      <div class="dashboard">
+        <div class="header">
+          <div class="header-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2V4M12 20V22M4 12H2M6.31412 6.31412L4.8999 4.8999M17.6859 6.31412L19.1001 4.8999M6.31412 17.69L4.8999 19.1042M17.6859 17.69L19.1001 19.1042M22 12H20M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1>Solar Panel Maintenance System</h1>
+            <div style="display: flex; gap: 12px; margin-top: 8px">
+              <span class="status-badge warning" id="systemStatus">
+                <span class="dot"></span>
+                System Alert
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card warning" id="powerCard">
+            <div class="label">Total Power Output</div>
+            <div class="value" id="powerValue">2.8 kW</div>
+            <div class="change" id="powerChange">↓ 35% Below Normal</div>
+          </div>
+          <div class="stat-card warning" id="efficiencyCard">
+            <div class="label">System Efficiency</div>
+            <div class="value" id="efficiencyValue">52%</div>
+            <div class="change" id="efficiencyChange">↓ Critical</div>
+          </div>
+          <div class="stat-card" id="panelsCard">
+            <div class="label">Active Panels</div>
+            <div class="value" id="panelsValue">14/18</div>
+            <div class="change" id="panelsChange">4 Panels Offline</div>
+          </div>
+          <div class="stat-card warning" id="revenueCard">
+            <div class="label">Daily Revenue</div>
+            <div class="value" id="revenueValue">$18.40</div>
+            <div class="change" id="revenueChange">↓ $12.60 Loss</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Power Generation (1hr)</h3>
+            <span class="date-range" id="dateRange">Real-time</span>
+          </div>
+          <canvas id="powerChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <h3>Panel Performance</h3>
+            <span class="date-range">Real-time</span>
+          </div>
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+
+      <!-- ChatBox Section -->
+      <div class="chatbox-container">
+        <div class="chatbox-header">
+          <h2>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                fill="currentColor"
+              />
+              <circle cx="9" cy="11" r="1" fill="#0a0a0a" />
+              <circle cx="15" cy="11" r="1" fill="#0a0a0a" />
+              <path
+                d="M9 15H15"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            AI Diagnostic Assistant
+          </h2>
+        </div>
+        <div class="messages" id="messages">
+          <div class="message bot">
+            <div class="message-avatar">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                  fill="currentColor"
+                />
+                <circle cx="9" cy="11" r="1.5" fill="#0a0a0a" />
+                <circle cx="15" cy="11" r="1.5" fill="#0a0a0a" />
+                <path
+                  d="M9 15H15"
+                  stroke="#0a0a0a"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <div class="message-content">
+              Hello! I'm your AI assistant. I can help diagnose and resolve
+              solar panel issues. Type your command below.
+            </div>
+          </div>
+        </div>
+        <div class="input-area">
+          <input
+            type="text"
+            id="userInput"
+            placeholder="Type 'Run a full diagnostic' to start..."
+          />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Chart Configuration
+      const chartColors = {
+        normal: {
+          line1: "rgba(118, 255, 3, 0.9)",
+          line2: "rgba(205, 220, 57, 0.9)",
+          fill1: "rgba(118, 255, 3, 0.15)",
+          fill2: "rgba(205, 220, 57, 0.15)",
+        },
+        warning: {
+          line1: "rgba(255, 82, 82, 0.8)",
+          line2: "rgba(255, 171, 64, 0.8)",
+          fill1: "rgba(255, 82, 82, 0.1)",
+          fill2: "rgba(255, 171, 64, 0.1)",
+        },
+      };
+
+      // Abnormal data (with faults) - 1 hour view
+      const abnormalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          2.8, 2.7, 2.9, 2.8, 2.6, 2.7, 2.8, 2.9, 2.7, 2.8, 2.7, 2.8, 2.7,
+        ],
+        power2: [
+          3.1, 3.0, 3.2, 3.1, 2.9, 3.0, 3.1, 3.2, 3.0, 3.1, 3.0, 3.1, 3.0,
+        ],
+      };
+
+      // Normal data (after repair) - 1 hour view
+      const normalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          4.2, 4.3, 4.5, 4.4, 4.6, 4.5, 4.7, 4.6, 4.5, 4.6, 4.7, 4.6, 4.5,
+        ],
+        power2: [
+          4.0, 4.1, 4.2, 4.1, 4.3, 4.2, 4.4, 4.3, 4.2, 4.3, 4.4, 4.3, 4.2,
+        ],
+      };
+
+      // Initialize Power Chart
+      const powerCtx = document.getElementById("powerChart").getContext("2d");
+      const powerChart = new Chart(powerCtx, {
+        type: "line",
+        data: {
+          labels: abnormalData.minutes,
+          datasets: [
+            {
+              label: "Panel Array A",
+              data: abnormalData.power1,
+              borderColor: chartColors.warning.line1,
+              backgroundColor: chartColors.warning.fill1,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+            },
+            {
+              label: "Panel Array B",
+              data: abnormalData.power2,
+              borderColor: chartColors.warning.line2,
+              backgroundColor: chartColors.warning.fill2,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: "#e0e0e0",
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              ticks: {
+                color: "#888",
+                callback: function (value) {
+                  return value + " kW";
+                },
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(255, 255, 255, 0.05)",
+              },
+              ticks: {
+                color: "#888",
+              },
+            },
+          },
+        },
+      });
+
+      // Initialize Bar Chart
+      const barCtx = document.getElementById("barChart").getContext("2d");
+      const barChart = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: [
+            "P-001",
+            "P-002",
+            "P-003",
+            "P-004",
+            "P-005",
+            "P-006",
+            "P-007",
+            "P-008",
+          ],
+          datasets: [
+            {
+              label: "Efficiency (%)",
+              data: [85, 45, 88, 42, 90, 87, 89, 86],
+              backgroundColor: function (context) {
+                const value = context.parsed.y;
+                return value < 50
+                  ? "rgba(255, 82, 82, 0.8)"
+                  : "rgba(118, 255, 3, 0.8)";
+              },
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: {
+                color: "rgba(255, 255, 255, 0.1)",
+              },
+              ticks: {
+                color: "#888",
+                callback: function (value) {
+                  return value + "%";
+                },
+              },
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                color: "#888",
+              },
+            },
+          },
+        },
+      });
+
+      // Chat functionality
+      const messagesContainer = document.getElementById("messages");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+      let isDemoRunning = false;
+      let isSystemNormal = false; // Track system state
+      let chartUpdateInterval = null;
+
+      function addMessage(
+        text,
+        isUser = false,
+        hasImage = false,
+        imageSrc = "",
+        toolExecution = null
+      ) {
+        return new Promise((resolve) => {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `message ${isUser ? "user" : "bot"}`;
+
+          const avatar = document.createElement("div");
+          avatar.className = "message-avatar";
+
+          if (isUser) {
+            avatar.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="currentColor"/><path d="M12 14C6.47715 14 2 17.5817 2 22H22C22 17.5817 17.5228 14 12 14Z" fill="currentColor"/></svg>';
+          } else {
+            avatar.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>';
+          }
+
+          const content = document.createElement("div");
+          content.className = "message-content";
+
+          messageDiv.appendChild(avatar);
+          messageDiv.appendChild(content);
+          messagesContainer.appendChild(messageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          if (isUser) {
+            content.textContent = text;
+            setTimeout(() => {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              resolve();
+            }, 500);
+          } else {
+            // Streaming effect
+            let index = 0;
+            const interval = setInterval(() => {
+              if (index < text.length) {
+                content.textContent = text.substring(0, index + 1);
+                index++;
+                // Smooth auto-scroll
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              } else {
+                clearInterval(interval);
+
+                // Add tool execution status if provided
+                if (toolExecution) {
+                  const toolDiv = document.createElement("div");
+                  toolDiv.className = `tool-execution ${
+                    toolExecution.type || ""
+                  }`;
+                  toolDiv.textContent = toolExecution.title;
+
+                  if (toolExecution.details) {
+                    const detailsDiv = document.createElement("div");
+                    detailsDiv.className = "tool-details";
+                    detailsDiv.innerHTML = toolExecution.details;
+                    toolDiv.appendChild(detailsDiv);
+                  }
+
+                  content.appendChild(toolDiv);
+                  // Scroll after adding tool execution
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+
+                if (hasImage) {
+                  const img = document.createElement("img");
+                  img.src = imageSrc;
+                  img.onload = () => {
+                    // Scroll after image loads
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                  };
+                  content.appendChild(img);
+                }
+
+                setTimeout(() => {
+                  // Final scroll
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                  resolve();
+                }, 800);
+              }
+            }, 30);
+          }
+        });
+      }
+
+      function showTypingIndicator() {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message bot";
+        messageDiv.id = "typing";
+
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>';
+
+        const content = document.createElement("div");
+        content.className = "message-content";
+        content.innerHTML =
+          '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+        messagesContainer.appendChild(messageDiv);
+        // Smooth auto-scroll
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 50);
+      }
+
+      function removeTypingIndicator() {
+        const typing = document.getElementById("typing");
+        if (typing) typing.remove();
+      }
+
+      function updateStatsToNormal() {
+        // Update stat cards
+        document.getElementById("powerValue").textContent = "4.5 kW";
+        document.getElementById("powerChange").textContent = "↑ 100% Optimal";
+        document.getElementById("powerChange").style.color = "#76ff03";
+        document.getElementById("powerCard").classList.remove("warning");
+
+        document.getElementById("efficiencyValue").textContent = "94%";
+        document.getElementById("efficiencyChange").textContent = "↑ Excellent";
+        document.getElementById("efficiencyChange").style.color = "#76ff03";
+        document.getElementById("efficiencyCard").classList.remove("warning");
+
+        document.getElementById("panelsValue").textContent = "18/18";
+        document.getElementById("panelsChange").textContent = "✓ All Online";
+        document.getElementById("panelsChange").style.color = "#76ff03";
+
+        document.getElementById("revenueValue").textContent = "$31.20";
+        document.getElementById("revenueChange").textContent = "↑ Target Met";
+        document.getElementById("revenueChange").style.color = "#76ff03";
+        document.getElementById("revenueCard").classList.remove("warning");
+
+        // Update status badge
+        const statusBadge = document.getElementById("systemStatus");
+        statusBadge.className = "status-badge success";
+        statusBadge.innerHTML = '<span class="dot"></span>System Optimal';
+
+        // Animate power chart restoration
+        animateChartRestoration();
+
+        // Update bar chart
+        barChart.data.datasets[0].data = [92, 94, 93, 95, 91, 93, 94, 92];
+        barChart.data.datasets[0].backgroundColor = "rgba(118, 255, 3, 0.8)";
+        barChart.update();
+      }
+
+      // Animate chart data restoration
+      function animateChartRestoration() {
+        let step = 0;
+        const totalSteps = 20;
+        const interval = setInterval(() => {
+          if (step >= totalSteps) {
+            clearInterval(interval);
+            isSystemNormal = true; // Mark system as normal after restoration
+            return;
+          }
+
+          // Interpolate between abnormal and normal data
+          const progress = step / totalSteps;
+          const interpolatedData1 = abnormalData.power1.map((val, idx) => {
+            return val + (normalData.power1[idx] - val) * progress;
+          });
+          const interpolatedData2 = abnormalData.power2.map((val, idx) => {
+            return val + (normalData.power2[idx] - val) * progress;
+          });
+
+          // Update chart
+          powerChart.data.labels = normalData.minutes;
+          powerChart.data.datasets[0].data = interpolatedData1;
+          powerChart.data.datasets[0].borderColor = chartColors.normal.line1;
+          powerChart.data.datasets[0].backgroundColor =
+            chartColors.normal.fill1;
+          powerChart.data.datasets[1].data = interpolatedData2;
+          powerChart.data.datasets[1].borderColor = chartColors.normal.line2;
+          powerChart.data.datasets[1].backgroundColor =
+            chartColors.normal.fill2;
+          powerChart.update("none"); // No animation for smooth transition
+
+          step++;
+        }, 100);
+      }
+
+      // Real-time chart update function
+      function updateChartRealtime() {
+        const baseData = isSystemNormal ? normalData : abnormalData;
+
+        // Generate slight random variations for realistic effect
+        const newData1 = baseData.power1.map((val) => {
+          const variation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+          return Math.max(0, val + variation);
+        });
+
+        const newData2 = baseData.power2.map((val) => {
+          const variation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+          return Math.max(0, val + variation);
+        });
+
+        // Update chart with new data
+        powerChart.data.datasets[0].data = newData1;
+        powerChart.data.datasets[1].data = newData2;
+        powerChart.update("none"); // Smooth update without animation
+      }
+
+      // Start real-time updates
+      function startChartUpdates() {
+        if (chartUpdateInterval) {
+          clearInterval(chartUpdateInterval);
+        }
+        chartUpdateInterval = setInterval(updateChartRealtime, 200); // Update 5 times per second
+      }
+
+      // Stop real-time updates
+      function stopChartUpdates() {
+        if (chartUpdateInterval) {
+          clearInterval(chartUpdateInterval);
+          chartUpdateInterval = null;
+        }
+      }
+
+      async function runDiagnosticDemo() {
+        if (isDemoRunning) return;
+        isDemoRunning = true;
+        sendBtn.disabled = true;
+        userInput.disabled = true;
+
+        // Step 1: User question
+        await addMessage("Run a full diagnostic", true);
+
+        // Step 2: Dispatching
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Initiating full system diagnostic...",
+          false,
+          false,
+          "",
+          {
+            title: "run_system_diagnostic",
+            details:
+              "<div>✓ Scanning panel array</div><div>✓ Analyzing power output</div><div>✓ Checking sensor data</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Step 3: Fault detected with image
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Fault detected in panels P-002.\n\nIssue: Dust accumulation and debris blocking solar cells.\nEstimated power loss: 35%\n\nInitiating drone deployment for inspection...",
+          false,
+          true,
+          "https://cdn.discordapp.com/attachments/1240495004389085184/1436490171301494914/yolo.jpg?ex=690fcb39&is=690e79b9&hm=1ec2463fdf4ccc3592b2fa4e196c66885275af0676c8dad6717b2fe92988082b&",
+          {
+            title: "detect_panel_faults",
+            type: "warning",
+            details:
+              "<div>Panels affected: P-002, P-004</div><div>Issue: Dust accumulation</div><div>Power loss: 35%</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        // Step 4: Rover deployment
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Deploying maintenance rover to affected panels...",
+          false,
+          false,
+          "",
+          {
+            title: "deploy_rover",
+            details:
+              "<div>✓ Route calculated</div><div>✓ Rover en route</div><div>✓ ETA: 2 minutes</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        // Step 5: Rover completed with image
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+        await addMessage(
+          "Rover has completed cleaning operations.\n\nPanels cleaned: P-002, P-004\nReturning to base station...",
+          false,
+          true,
+          "../outside/coordination-server/images/panel_healthy.png",
+          {
+            title: "rover_task_complete",
+            details:
+              "<div>✓ Panels cleaned: P-002, P-004</div><div>✓ Rover returning to base</div>",
+          }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Step 6: System restored
+        showTypingIndicator();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        removeTypingIndicator();
+
+        // Update dashboard to normal
+        updateStatsToNormal();
+
+        await addMessage(
+          "All systems are now functioning within optimal parameters.\n\nDiagnostic complete. System operating normally.",
+          false,
+          false,
+          "",
+          {
+            title: "verify_system_status",
+            details:
+              "<div>✓ Power output: 4.5 kW (100%)</div><div>✓ System efficiency: 94%</div><div>✓ All panels online: 18/18</div><div>✓ Revenue target: Met</div>",
+          }
+        );
+
+        sendBtn.disabled = false;
+        userInput.disabled = false;
+        userInput.value = "";
+        userInput.placeholder = "Type your message...";
+        isDemoRunning = false;
+      }
+
+      sendBtn.addEventListener("click", () => {
+        const message = userInput.value.trim().toLowerCase();
+        if (message.includes("diagnostic") || message.includes("run")) {
+          runDiagnosticDemo();
+        }
+      });
+
+      userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          sendBtn.click();
+        }
+      });
+
+      // Start real-time chart updates when page loads
+      window.addEventListener("load", () => {
+        startChartUpdates();
+      });
+
+      // Clean up on page unload
+      window.addEventListener("beforeunload", () => {
+        stopChartUpdates();
+      });
+    </script>
+  </body>
+</html>

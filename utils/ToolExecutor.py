@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 from urllib.parse import urljoin
 
 class ToolExecutor:
@@ -47,21 +48,51 @@ class ToolExecutor:
 
     def find_panels(self, parameters: dict) -> dict:
         """
-        Handles the 'find_panels' tool by calling GET /api/panels with optional filters.
-        Currently returns MOCK data for testing without Go Server.
+        Handles the 'find_panels' tool by fetching live data from CoordinateServer.
+        Falls back to mock data if server is unavailable.
         """
-        # TODO: Uncomment when Go Server is ready
-        # query_params = {
-        #     "clusterid": parameters.get("cluster_id"),
-        #     "panelid": parameters.get("panel_id"),
-        #     "status": parameters.get("status"),
-        # }
-        # cleaned_params = {k: v for k, v in query_params.items() if v is not None}
-        # return self._make_request("GET", "api/panels", params=cleaned_params)
+        print(f"[FIND_PANELS] Querying with params: {parameters}")
         
-        # ✅ MOCK DATA for testing
-        print(f"--- MOCK CALL ---: Finding panels with params: {parameters}")
+        # Try to get live data from CoordinateServer
+        try:
+            slm_url = os.getenv("SLM_URL", "http://localhost:8000")
+            response = requests.get(f"{slm_url}/api/panels/status", timeout=2)
+            
+            if response.status_code == 200:
+                data = response.json()
+                panels = data.get("panels", [])
+                cluster_id = data.get("cluster_id", "CL-001")
+                
+                print(f"[FIND_PANELS] ✓ Retrieved {len(panels)} panels from live data")
+                
+                # Apply filters
+                panel_id = parameters.get("panel_id")
+                status_filter = parameters.get("status")
+                cluster_filter = parameters.get("cluster_id")
+                
+                if status_filter:
+                    panels = [p for p in panels if p["status"] == status_filter]
+                
+                if panel_id:
+                    panels = [p for p in panels if p["panel_id"] == panel_id]
+                
+                if cluster_filter and cluster_filter != cluster_id:
+                    panels = []
+                
+                # Format in the expected structure
+                result = [{
+                    "cluster_id": cluster_id,
+                    "location": {"x": 3, "y": 3},
+                    "panels": panels
+                }]
+                
+                return {"panels": result}
+                
+        except Exception as e:
+            print(f"[FIND_PANELS] ⚠ Could not fetch live data: {e}")
+            print(f"[FIND_PANELS] Falling back to mock data")
         
+        # FALLBACK: Mock data if server unavailable
         mock_data = [
             {
                 "cluster_id": "CL-001",
@@ -113,19 +144,16 @@ class ToolExecutor:
             }
         ]
         
-        # Optional: Apply simple filtering based on parameters
+        # Apply filtering on mock data
         cluster_id = parameters.get("cluster_id")
         panel_id = parameters.get("panel_id")
         status = parameters.get("status")
         
-        # If filters are provided, filter the mock data
         if status:
-            # Filter panels by status
             for cluster in mock_data:
                 cluster["panels"] = [p for p in cluster["panels"] if p["status"] == status]
         
         if panel_id:
-            # Filter to specific panel
             for cluster in mock_data:
                 cluster["panels"] = [p for p in cluster["panels"] if p["panel_id"] == panel_id]
         
@@ -163,21 +191,79 @@ class ToolExecutor:
     def dispatch_rover_to_panel(self, parameters: dict) -> dict:
         """
         Handles 'dispatch_rover_to_panel'.
-        NOTE: This is a placeholder as the exact API endpoint needs confirmation.
-        Assuming it will be POST /api/rover/send/{cluster_id}/{panel_id}.
+        Generates task_id and prepares command for Rover.
+        Supports flexible parameter formats (integers or strings).
         """
+        import uuid
+        
         cluster_id = parameters.get("cluster_id")
         panel_id = parameters.get("panel_id")
         if not cluster_id or not panel_id:
             return {"error": "cluster_id and panel_id are required parameters."}
 
-        # This endpoint is an assumption based on `handlers.go` and needs to be verified.
-        # For now, it returns a mock success message.
-        # endpoint = f"api/rover/send/{cluster_id}/{panel_id}"
-        # return self._make_request("POST", endpoint)
+        # Normalize cluster_id format (handle int or string input)
+        if isinstance(cluster_id, int):
+            cluster_id = f"CL-{cluster_id:03d}"  # Convert 1 -> "CL-001"
+        elif not str(cluster_id).startswith("CL-"):
+            cluster_id = f"CL-{cluster_id}"
         
-        print(f"--- MOCK CALL ---: Dispatching rover to Cluster {cluster_id}, Panel {panel_id}")
-        return {"status": "success", "message": f"Rover dispatched to cluster {cluster_id}, panel {panel_id}. (Mock Response)"}
+        # Normalize panel_id format (handle int or string input)
+        if isinstance(panel_id, int):
+            panel_id = f"P-{panel_id:03d}"  # Convert 1 -> "P-001"
+        elif not str(panel_id).startswith("P-"):
+            panel_id = f"P-{panel_id}"
+        
+        # Map panel_id to route number (for Albert's rover planner)
+        panel_to_route = {
+            "P-001": 1,
+            "P-002": 2,
+            "P-003": 3,
+            "P-004": 4
+        }
+        
+        route_number = panel_to_route.get(panel_id)
+        if not route_number:
+            error_msg = f"Invalid panel_id: {panel_id}. Must be P-001 to P-004 (or 1 to 4)"
+            print(f"[ERROR] {error_msg}")
+            return {"error": error_msg}
+        
+        # Generate task_id
+        task_id = str(uuid.uuid4())
+        
+        print(f"[ROVER DISPATCH] Task {task_id} -> Cluster {cluster_id}, Panel {panel_id} (Route {route_number})")
+        
+        # Send command to Rover via HTTP
+        rover_url = os.getenv("ROVER_HTTP_URL", "http://localhost:5001/start_route")
+        slm_url = os.getenv("SLM_URL", "http://localhost:8000")
+        
+        rover_command = {
+            "route_number": route_number,
+            "task_id": task_id,
+            "webhook_url": f"{slm_url}/api/webhook/rover"
+        }
+        
+        try:
+            response = requests.post(rover_url, json=rover_command, timeout=3)
+            if response.status_code == 200:
+                print(f"[ROVER DISPATCH] ✓ Command sent to Rover successfully")
+                result = response.json()
+                print(f"[ROVER DISPATCH] Rover response: {result}")
+            else:
+                print(f"[ROVER DISPATCH] ⚠ Rover responded with status {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            print(f"[ROVER DISPATCH] ⚠ Could not connect to Rover at {rover_url}")
+            print(f"[ROVER DISPATCH]   Make sure ROS planner node is running")
+        except Exception as e:
+            print(f"[ROVER DISPATCH] ⚠ Error: {e}")
+        
+        return {
+            "status": "dispatched",
+            "task_id": task_id,
+            "panel_id": panel_id,
+            "cluster_id": cluster_id,
+            "route_number": route_number,
+            "message": f"Rover dispatched to panel {panel_id}. Task ID: {task_id}"
+        }
 
     def get_drone_status(self, parameters: dict) -> dict:
         """
@@ -189,3 +275,73 @@ class ToolExecutor:
         }
         cleaned_params = {k: v for k, v in query_params.items() if v is not None}
         return self._make_request("GET", "api/drones", params=cleaned_params)
+    def get_dashboard_status(self, parameters: dict) -> dict:
+        """
+        Handles 'get_dashboard_status' by fetching from CoordinateServer.
+        Returns current system dashboard status including power output, efficiency, etc.
+        """
+        print(f"[GET_DASHBOARD] Fetching dashboard status")
+        
+        try:
+            slm_url = os.getenv("SLM_URL", "http://localhost:8000")
+            response = requests.get(f"{slm_url}/api/dashboard/status", timeout=2)
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"[GET_DASHBOARD] ✓ Retrieved dashboard status: {json.dumps(data, indent=2)}")
+                
+                # Ensure we return a proper dict structure
+                # Format the response for LLM understanding
+                result = {
+                    "status": "success",
+                    "dashboard": {
+                        "total_power_output_kw": data.get("total_power_output", 0),
+                        "system_efficiency_percent": data.get("system_efficiency", 0),
+                        "active_panels": data.get("active_panels", "0/0"),
+                        "daily_revenue_usd": data.get("daily_revenue", 0),
+                        "dirty_panel_count": data.get("dirty_panel_count", 0),
+                        "has_active_rover_task": data.get("has_active_rover_task", False),
+                        "normal_power_output_kw": data.get("normal_power_output", 0),
+                        "normal_efficiency_percent": data.get("normal_efficiency", 0),
+                        "normal_revenue_usd": data.get("normal_revenue", 0)
+                    }
+                }
+                
+                # Add summary message for LLM
+                dirty_count = data.get("dirty_panel_count", 0)
+                power_output = data.get("total_power_output", 0)
+                efficiency = data.get("system_efficiency", 0)
+                
+                if dirty_count > 0:
+                    result["summary"] = f"System has {dirty_count} dirty panel(s). Power output is {power_output} kW ({efficiency}% efficiency), which is below normal levels."
+                else:
+                    result["summary"] = f"All panels are clean. Power output is {power_output} kW ({efficiency}% efficiency), operating at normal levels."
+                
+                return result
+            else:
+                error_msg = f"Server error: {response.status_code}"
+                print(f"[GET_DASHBOARD] ⚠ {error_msg}")
+                return {
+                    "status": "error",
+                    "error": error_msg,
+                    "message": "Unable to retrieve dashboard status"
+                }
+                
+        except requests.exceptions.ConnectionError as e:
+            error_msg = f"Could not connect to SLM server: {e}"
+            print(f"[GET_DASHBOARD] ⚠ {error_msg}")
+            return {
+                "status": "error",
+                "error": error_msg,
+                "message": "Unable to connect to dashboard service"
+            }
+        except Exception as e:
+            error_msg = f"Failed to fetch dashboard status: {e}"
+            print(f"[GET_DASHBOARD] ⚠ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "status": "error",
+                "error": error_msg,
+                "message": "An error occurred while retrieving dashboard status"
+            }

@@ -43,35 +43,51 @@ class PromptBuilder:
 
 class GPTParsingUtils:
     """
-    This class is used to parse the response from the GPT model.
-    For example, if the response is a JSON object, it will be parsed into a Python dictionary.
+    Utility class for parsing LLM responses, particularly for tool calling.
+    Supports multiple formats: OpenAI function calling and text-based tool calls.
     """
 
-    def tool_usage_parsing(self, response) -> dict:
+    def tool_usage_parsing(self, response, response_object=None) -> dict:
         """
-        Parse the tool usage response from the GPT model.
-        This regex is designed to handle both 'to=tool_name' and 'to=functions.tool_name' formats.
-        Returns a dictionary with 'tool_name' and 'parameters' if a tool call is found,
-        None if no tool call pattern is matched.
+        Parse tool usage from LLM response. Supports dual formats:
+        
+        Format 1: OpenAI function calling (from response_object)
+            response_object.tool_calls = [{"function": {"name": "...", "arguments": "..."}}]
+        
+        Format 2: Text-based tool calling (from response string)
+            "to=find_panels<|message|>{\"status\": \"dirty\"}"
+            "to=functions.find_panels<|message|>{\"status\": \"dirty\"}"
+        
+        Args:
+            response: Text response from LLM
+            response_object: Optional response object with tool_calls attribute
+        
+        Returns:
+            Dict with 'tool_name' and 'parameters' if tool call found, None otherwise
         """
-
-        # This single regex handles both cases:
-        # 1. to=functions.find_panels -> will capture 'find_panels'
-        # 2. to=find_panels -> will capture 'find_panels'
-        # The (?:functions\.)? is a non-capturing group that makes "functions." optional.
+        
+        # Format 1: OpenAI function calling (preferred for OpenAI API)
+        if response_object and hasattr(response_object, 'tool_calls') and response_object.tool_calls:
+            tool_call = response_object.tool_calls[0]
+            return {
+                "tool_name": tool_call.function.name,
+                "parameters": json.loads(tool_call.function.arguments)
+            }
+        
+        # Format 2: Text-based tool calling (for local LLMs)
+        # Regex pattern matches both:
+        # - to=functions.tool_name<|message|>{...}
+        # - to=tool_name<|message|>{...}
+        # The (?:functions\.)? is a non-capturing optional group
         match = re.search(r"to=(?:functions\.)?(\w+).*<\|message\|>(.*)", response, re.DOTALL)
         if match:
-            try:
-                tool_name = match.group(1).strip()
-                json_string = match.group(2).strip()
-                parameters = json.loads(json_string)
-
-                return {
-                    "tool_name": tool_name,
-                    "parameters": parameters
-                }
-            except Exception as e:
-                raise Exception(f"Error parsing tool usage response: {e}")
-
-        else:  # If no tool call pattern is matched, return None
-            return None
+            tool_name = match.group(1).strip()
+            json_string = match.group(2).strip()
+            parameters = json.loads(json_string)
+            return {
+                "tool_name": tool_name,
+                "parameters": parameters
+            }
+        
+        # No tool call detected
+        return None
