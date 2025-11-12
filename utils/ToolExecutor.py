@@ -20,6 +20,7 @@ class ToolExecutor:
             "dispatch_drone_to_cluster": self.dispatch_drone_to_cluster,
             "dispatch_rover_to_panel": self.dispatch_rover_to_panel,
             "get_drone_status": self.get_drone_status,
+            "get_dashboard_status": self.get_dashboard_status,
         }
 
         handler = tool_handlers.get(tool_name)
