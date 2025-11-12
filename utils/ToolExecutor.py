@@ -243,28 +243,46 @@ class ToolExecutor:
             "webhook_url": f"{slm_url}/api/webhook/rover"
         }
         
+        dispatch_success = False
+        error_message = None
+        
         try:
             response = requests.post(rover_url, json=rover_command, timeout=3)
             if response.status_code == 200:
                 print(f"[ROVER DISPATCH] ✓ Command sent to Rover successfully")
                 result = response.json()
                 print(f"[ROVER DISPATCH] Rover response: {result}")
+                dispatch_success = True
             else:
-                print(f"[ROVER DISPATCH] ⚠ Rover responded with status {response.status_code}")
+                error_message = f"Rover responded with status {response.status_code}"
+                print(f"[ROVER DISPATCH] ⚠ {error_message}")
         except requests.exceptions.ConnectionError:
-            print(f"[ROVER DISPATCH] ⚠ Could not connect to Rover at {rover_url}")
-            print(f"[ROVER DISPATCH]   Make sure ROS planner node is running")
+            error_message = f"Could not connect to Rover at {rover_url}. Make sure ROS planner node is running."
+            print(f"[ROVER DISPATCH] ⚠ {error_message}")
+        except requests.exceptions.Timeout:
+            error_message = f"Request to Rover timed out after 3 seconds"
+            print(f"[ROVER DISPATCH] ⚠ {error_message}")
         except Exception as e:
-            print(f"[ROVER DISPATCH] ⚠ Error: {e}")
+            error_message = f"Error communicating with Rover: {e}"
+            print(f"[ROVER DISPATCH] ⚠ {error_message}")
         
-        return {
-            "status": "dispatched",
+        # Always return task_id and details, but indicate success/failure
+        result = {
+            "status": "dispatched" if dispatch_success else "failed",
             "task_id": task_id,
             "panel_id": panel_id,
             "cluster_id": cluster_id,
             "route_number": route_number,
-            "message": f"Rover dispatched to panel {panel_id}. Task ID: {task_id}"
         }
+        
+        if dispatch_success:
+            result["message"] = f"Rover dispatched to panel {panel_id}. Task ID: {task_id}"
+        else:
+            result["error"] = error_message
+            result["message"] = f"Failed to dispatch rover to panel {panel_id}. {error_message}"
+            # Still return task_id so system can track the failed attempt
+        
+        return result
 
     def get_drone_status(self, parameters: dict) -> dict:
         """
