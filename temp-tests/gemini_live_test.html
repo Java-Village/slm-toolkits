@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Live Audio Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; text-align: center; }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #connectBtn { background-color: #4285f4; color: white; }
+        #connectBtn:hover { background-color: #3367d6; }
+        #connectBtn:disabled { background-color: #a0c0f0; cursor: not-allowed; }
+        
+        #stopBtn { background-color: #ea4335; color: white; }
+        #stopBtn:hover { background-color: #d32f2f; }
+        #stopBtn:disabled { background-color: #f4a09a; cursor: not-allowed; }
+
+        .status-indicator {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #666;
+        }
+        .status-active { color: #0f9d58; }
+        .status-error { color: #d32f2f; }
+
+        #chat-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            line-height: 1.4;
+        }
+        .message.user {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            color: #1565c0;
+            border-bottom-right-radius: 5px;
+        }
+        .message.model {
+            background-color: #f1f8e9;
+            margin-right: auto;
+            color: #33691e;
+            border-bottom-left-radius: 5px;
+        }
+
+        #logs {
+            margin-top: 20px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+        .log-send { color: #4fc3f7; }
+        .log-receive { color: #e040fb; }
+        .log-system { color: #ffd54f; }
+        .log-error { color: #ff5252; }
+
+        .visualizer {
+            width: 100%;
+            height: 60px;
+            background-color: #eee;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .bar {
+            display: inline-block;
+            width: 1%;
+            height: 100%;
+            background-color: #4285f4;
+            transition: height 0.1s;
+            vertical-align: bottom;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gemini Live Audio API Test</h1>
+    
+    <div class="input-group">
+        <label for="apiKey">Google API Key:</label>
+        <input type="password" id="apiKey" placeholder="Enter your Gemini API Key here..." autocomplete="off">
+    </div>
+
+    <div class="input-group">
+        <label for="modelName">Model:</label>
+        <input type="text" id="modelName" value="models/gemini-2.5-flash-native-audio-preview-09-2025">
+    </div>
+
+    <div class="status-indicator" id="status">Disconnected</div>
+
+    <div class="controls">
+        <button id="connectBtn">Start Conversation</button>
+        <button id="stopBtn" disabled>End Conversation</button>
+    </div>
+
+    <div class="visualizer" id="visualizer">
+        <!-- Simple visualizer bars will be added here -->
+    </div>
+
+    <div id="chat-container">
+        <div style="text-align: center; color: #aaa; padding-top: 20px;">Conversation will appear here...</div>
+    </div>
+
+    <div id="logs"></div>
+</div>
+
+<script>
+    /**
+     * Constants for Audio Processing
+     * Gemini expects 16kHz input.
+     * Gemini output is typically 24kHz.
+     */
+    const INPUT_SAMPLE_RATE = 16000;
+    const OUTPUT_SAMPLE_RATE = 24000;
+
+    let audioContext;
+    let ws;
+    let mediaStream;
+    let audioProcessor;
+    let isConnected = false;
+    let nextExpectedPlayTime = 0;
+
+    const apiKeyInput = document.getElementById('apiKey');
+    const modelInput = document.getElementById('modelName');
+    const connectBtn = document.getElementById('connectBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusDiv = document.getElementById('status');
+    const logsDiv = document.getElementById('logs');
+    const chatContainer = document.getElementById('chat-container');
+
+    let currentModelResponseDiv = null;
+
+    function appendMessage(role, text) {
+        // Remove placeholder if exists
+        if (chatContainer.firstChild && chatContainer.firstChild.style && chatContainer.firstChild.style.textAlign === 'center') {
+            chatContainer.innerHTML = '';
+        }
+
+        if (role === 'model' && currentModelResponseDiv) {
+            currentModelResponseDiv.textContent += text;
+        } else {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.textContent = text;
+            chatContainer.appendChild(div);
+            if (role === 'model') {
+                currentModelResponseDiv = div;
+            }
+        }
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // --- Logging Helper ---
+    function log(msg, type = 'system') {
+        const div = document.createElement('div');
+        div.className = `log-entry log-${type}`;
+        const time = new Date().toLocaleTimeString();
+        div.textContent = `[${time}] ${msg}`;
+        logsDiv.appendChild(div);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+        console.log(`[${type}]`, msg);
+    }
+
+    // --- Buffer Helper ---
+    // Convert Float32 (Web Audio) to Int16 (PCM)
+    function floatTo16BitPCM(float32Array) {
+        const buffer = new ArrayBuffer(float32Array.length * 2);
+        const view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < float32Array.length; i++) {
+            let s = Math.max(-1, Math.min(1, float32Array[i]));
+            s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            view.setInt16(offset, s, true); // Little endian
+            offset += 2;
+        }
+        return buffer;
+    }
+
+    // Convert Base64 string to ArrayBuffer
+    function base64ToArrayBuffer(base64) {
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    // Convert ArrayBuffer to Base64
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    // --- Audio Playback ---
+    function playAudioChunk(pcmData) {
+        if (!audioContext) return;
+
+        // Convert PCM 16-bit Int to Float32
+        const int16Array = new Int16Array(pcmData);
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+            float32Array[i] = int16Array[i] / 32768.0;
+        }
+
+        // Create Audio Buffer
+        const audioBuffer = audioContext.createBuffer(1, float32Array.length, OUTPUT_SAMPLE_RATE);
+        audioBuffer.getChannelData(0).set(float32Array);
+
+        // Schedule Playback
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+
+        // Ensure smooth playback by scheduling next chunk after previous
+        const currentTime = audioContext.currentTime;
+        if (nextExpectedPlayTime < currentTime) {
+            nextExpectedPlayTime = currentTime;
+        }
+        source.start(nextExpectedPlayTime);
+        nextExpectedPlayTime += audioBuffer.duration;
+    }
+
+    // --- Main Logic ---
+    
+    async function startSession() {
+        const apiKey = apiKeyInput.value.trim();
+        const model = modelInput.value.trim();
+
+        if (!apiKey) {
+            alert('Please enter an API Key');
+            return;
+        }
+
+        try {
+            // 1. Initialize AudioContext (must be user triggered)
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: INPUT_SAMPLE_RATE 
+                // Note: We request 16k context if possible to avoid manual resampling, 
+                // but browser might enforce hardware rate.
+            });
+            
+            // If context is not 16k, we will have to handle it (simplified here by hoping getUserMedia handles it or context does)
+            // For robustness, we rely on the graph to handle rate.
+            
+            // 2. Setup WebSocket
+            // Correct Endpoint for Bidi Streaming
+            const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+            
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                log('WebSocket Connected', 'system');
+                statusDiv.textContent = 'Connected - Sending Setup...';
+                statusDiv.className = 'status-indicator status-active';
+                
+                // 3. Send Setup Message
+                const setupMsg = {
+                    setup: {
+                        model: model,
+                        generationConfig: {
+                            responseModalities: ["AUDIO", "TEXT"]
+                        }
+                    }
+                };
+                ws.send(JSON.stringify(setupMsg));
+                log('Sent Setup configuration', 'send');
+
+                // 4. Start Microphone
+                startMicrophone();
+            };
+
+            ws.onmessage = async (event) => {
+                let data;
+                if (event.data instanceof Blob) {
+                    const text = await event.data.text();
+                    data = JSON.parse(text);
+                } else {
+                    data = JSON.parse(event.data);
+                }
+
+                if (data.serverContent) {
+                    if (data.serverContent.modelTurn) {
+                        const parts = data.serverContent.modelTurn.parts;
+                        for (const part of parts) {
+                            if (part.text) {
+                                appendMessage('model', part.text);
+                            }
+                            if (part.inlineData && part.inlineData.mimeType.startsWith('audio/pcm')) {
+                                // Play Audio
+                                const pcmData = base64ToArrayBuffer(part.inlineData.data);
+                                playAudioChunk(pcmData);
+                                log(`Received Audio Chunk (${pcmData.byteLength} bytes)`, 'receive');
+                            }
+                        }
+                    }
+                    if (data.serverContent.turnComplete) {
+                        log('Turn Complete', 'system');
+                        currentModelResponseDiv = null; // Reset for next turn
+                    }
+                } else if (data.toolUseCancellation) {
+                    log('Tool Use Cancelled', 'error');
+                } else {
+                    // log('Received control message: ' + JSON.stringify(data), 'receive');
+                }
+            };
+
+            ws.onerror = (error) => {
+                log('WebSocket Error', 'error');
+                console.error(error);
+                stopSession();
+            };
+
+            ws.onclose = (event) => {
+                log(`WebSocket Closed: ${event.code} ${event.reason}`, 'system');
+                stopSession();
+            };
+
+            toggleControls(true);
+
+        } catch (err) {
+            log(`Initialization Error: ${err.message}`, 'error');
+            console.error(err);
+            stopSession();
+        }
+    }
+
+    async function startMicrophone() {
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    sampleRate: INPUT_SAMPLE_RATE
+                }
+            });
+
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            
+            // Create a ScriptProcessor to capture raw PCM data
+            // (AudioWorklet is better but ScriptProcessor is easier for single file demo)
+            const bufferSize = 2048; // Small buffer for low latency
+            audioProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+            audioProcessor.onaudioprocess = (e) => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Downsample/Convert if necessary. 
+                    // If audioContext was created at 16000, inputData is 16000.
+                    // If hardware is 48000, web audio might resample for us if context is set to 16000,
+                    // or we get 48k if context couldn't accept 16k.
+                    
+                    // Assuming context.sampleRate is close to 16k or we blindly send float data converted to PCM.
+                    // NOTE: For robust production, explicit resampling is needed here if context.sampleRate != 16000.
+                    // But for this demo, we rely on browser resampling via getUserMedia constraints or AudioContext constructor.
+                    
+                    const pcm16 = floatTo16BitPCM(inputData);
+                    const base64Audio = arrayBufferToBase64(pcm16);
+
+                    const msg = {
+                        realtimeInput: {
+                            mediaChunks: [{
+                                mimeType: "audio/pcm;rate=16000",
+                                data: base64Audio
+                            }]
+                        }
+                    };
+                    ws.send(JSON.stringify(msg));
+                }
+            };
+
+            source.connect(audioProcessor);
+            audioProcessor.connect(audioContext.destination); // Needed for Chrome to fire events, but mute output to avoid echo
+            
+            // Mute the local feedback
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0;
+            audioProcessor.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            log('Microphone started', 'system');
+
+        } catch (err) {
+            log(`Microphone Error: ${err.message}`, 'error');
+            stopSession();
+        }
+    }
+
+    function stopSession() {
+        isConnected = false;
+        statusDiv.textContent = 'Disconnected';
+        statusDiv.className = 'status-indicator';
+
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+
+        if (audioProcessor) {
+            audioProcessor.disconnect();
+            audioProcessor = null;
+        }
+
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+
+        toggleControls(false);
+    }
+
+    function toggleControls(connected) {
+        isConnected = connected;
+        connectBtn.disabled = connected;
+        stopBtn.disabled = !connected;
+        apiKeyInput.disabled = connected;
+        modelInput.disabled = connected;
+    }
+
+    connectBtn.addEventListener('click', startSession);
+    stopBtn.addEventListener('click', stopSession);
+
+    // Simple UI Visualizer (fake)
+    const visualizer = document.getElementById('visualizer');
+    for(let i=0; i<50; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        visualizer.appendChild(bar);
+    }
+    
+    setInterval(() => {
+        if(isConnected) {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const h = Math.random() * 80 + 10;
+                bar.style.height = h + '%';
+            });
+        }
+    }, 100);
+
+</script>
+
+</body>
+</html>
+

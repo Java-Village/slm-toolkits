@@ -296,27 +296,21 @@ def _track_tool_result(tool_name: str, tool_result: dict, conversation_id: str):
     """
     global active_rover_task
     
-    # Rover task tracking (only track successful dispatches)
+    # Rover task tracking
     if tool_name == "dispatch_rover_to_panel" and "task_id" in tool_result:
-        # Only track if dispatch was successful
-        if tool_result.get("status") == "dispatched":
-            task_id = tool_result["task_id"]
-            rover_tasks[task_id] = {
-                "status": "dispatched",
-                "conversation_id": conversation_id,
-                "panel_id": tool_result.get("panel_id"),
-                "cluster_id": tool_result.get("cluster_id"),
-                "route_number": tool_result.get("route_number"),
-                "created_at": datetime.datetime.now(),
-                "last_update": datetime.datetime.now()
-            }
-            active_rover_task = task_id  # Mark as active task
-            _update_dashboard_for_panels()  # Update dashboard
-            print(f"[Task] Created rover task: {task_id} (active)")
-        else:
-            # Dispatch failed - log but don't track as active task
-            error_msg = tool_result.get("error", "Unknown error")
-            print(f"[Task] Rover dispatch failed: {error_msg}")
+        task_id = tool_result["task_id"]
+        rover_tasks[task_id] = {
+            "status": "dispatched",
+            "conversation_id": conversation_id,
+            "panel_id": tool_result.get("panel_id"),
+            "cluster_id": tool_result.get("cluster_id"),
+            "route_number": tool_result.get("route_number"),
+            "created_at": datetime.datetime.now(),
+            "last_update": datetime.datetime.now()
+        }
+        active_rover_task = task_id  # Mark as active task
+        _update_dashboard_for_panels()  # Update dashboard
+        print(f"[Task] Created rover task: {task_id} (active)")
     
     # Future: Add other tool tracking here
     # elif tool_name == "dispatch_drone_to_cluster" and "task_id" in tool_result:
