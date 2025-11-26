@@ -939,7 +939,7 @@
 
           // OPTION 1: Native Browser TTS (Free, Fast, Works Offline)
           if ("speechSynthesis" in window) {
-            // REMOVED: window.speechSynthesis.cancel(); 
+            // REMOVED: window.speechSynthesis.cancel();
             // Allowing queueing prevents cutting off the previous sentence.
 
             const utterance = new SpeechSynthesisUtterance(plainText);
