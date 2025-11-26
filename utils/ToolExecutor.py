@@ -3,6 +3,15 @@ import json
 import os
 from urllib.parse import urljoin
 
+# TODO: define webhook API
+# currently, GO Backend sends webhook when:
+#   - a task is assigned (to drone or rover)
+#   - sending the drone/rover doesn't work
+#   - status updates from the rover
+#     - arrived at nav node, finished cleaning, returned to base, etc.
+#     - but only when the status changes
+#       - so it doesn't send the position of the rover every 5 seconds to the SLM
+
 class ToolExecutor:
     def __init__(self, go_server_base_url: str):
         """
@@ -54,7 +63,7 @@ class ToolExecutor:
         """
         print(f"[FIND_PANELS] Querying with params: {parameters}")
         
-        # Try to get live data from CoordinateServer
+        # TODO: change to use `GET /api/panels` w/ various query params
         try:
             slm_url = os.getenv("SLM_URL", "http://localhost:8000")
             response = requests.get(f"{slm_url}/api/panels/status", timeout=2)
@@ -160,10 +169,12 @@ class ToolExecutor:
         
         return {"panels": mock_data}
 
-    def get_panel_maintenance_history(self, parameters: dict) -> dict:
+    def get_tasks_for_panel(self, parameters: dict) -> dict:
         """
-        Handles 'get_panel_maintenance_history' by calling GET /api/maintenance_requests.
+        Handles 'get_tasks_for_panel' by calling GET /api/tasks.
         """
+        # TODO: change to use `GET /api/tasks` with `cluster_id` and `panel_id` parameters
+        
         cluster_id = parameters.get("cluster_id")
         panel_id = parameters.get("panel_id")
 
@@ -180,6 +191,7 @@ class ToolExecutor:
         """
         Handles 'dispatch_drone_to_cluster' by calling POST /api/drones/send/{cluster_id}.
         """
+        # TODO: change to use `POST /api/tasks` w/ tasktype parameter "inspect"
         cluster_id = parameters.get("cluster_id")
         if not cluster_id:
             return {"error": "cluster_id is a required parameter."}
@@ -187,14 +199,14 @@ class ToolExecutor:
         endpoint = f"api/drones/send/{cluster_id}"
         return self._make_request("POST", endpoint)
 
-
-
     def dispatch_rover_to_panel(self, parameters: dict) -> dict:
         """
         Handles 'dispatch_rover_to_panel'.
         Generates task_id and prepares command for Rover.
         Supports flexible parameter formats (integers or strings).
         """
+
+        # TODO: change to use `POST /api/tasks` w/ tasktype parameter "clean"
         import uuid
         
         cluster_id = parameters.get("cluster_id")
@@ -288,17 +300,22 @@ class ToolExecutor:
         """
         Handles the 'get_drone_status' tool by calling GET /api/drones with optional filters.
         """
+        # TODO: change to use `GET /api/drones` with drone_id and some parameter to get most recent
+        # text me (aydin) about this! haven't implemented the "get most recent" parameter yet
         query_params = {
             "droneid": parameters.get("drone_id"),
             "destination": parameters.get("destination_cluster_id"),
         }
         cleaned_params = {k: v for k, v in query_params.items() if v is not None}
         return self._make_request("GET", "api/drones", params=cleaned_params)
+
+
     def get_dashboard_status(self, parameters: dict) -> dict:
         """
         Handles 'get_dashboard_status' by fetching from CoordinateServer.
         Returns current system dashboard status including power output, efficiency, etc.
         """
+        # TODO: i (aydin) gotta make a fake solar farm tracking API so text me when you get to this
         print(f"[GET_DASHBOARD] Fetching dashboard status")
         
         try:
