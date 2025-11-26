@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solar Panel Maintenance System - Live Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* --- COPY OF INDEX.HTML STYLES --- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(
+          180deg,
+          #0a0a0a 0%,
+          #1a2a1a 50%,
+          #2d3d1a 100%
+        );
+        color: #e8f5e9;
+        overflow: hidden;
+      }
+      .container {
+        display: grid;
+        grid-template-columns: 1fr 500px;
+        height: 100vh;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      /* Dashboard */
+      .dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow-y: auto;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+      }
+      .header-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+      }
+      .header-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+      .header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s, border-color 0.3s;
+      }
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+      .stat-card .label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+      .stat-card .change {
+        font-size: 12px;
+        color: #76ff03;
+      }
+      .stat-card.warning .value {
+        color: #ff5252;
+      }
+      .stat-card.warning .change {
+        color: #ff5252;
+      }
+
+      .chart-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        height: 400px;
+      }
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .chart-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .chart-header .date-range {
+        font-size: 12px;
+        color: #888;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+
+      /* ChatBox */
+      .chatbox-container {
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        position: relative;
+      }
+      .chatbox-header {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .chatbox-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chatbox-header h2 svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scroll-behavior: smooth;
+        transition: padding-bottom 0.3s;
+      }
+
+      /* Message Styles */
+      .message {
+        display: flex;
+        gap: 12px;
+        animation: fadeIn 0.5s ease-in;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .message.user {
+        flex-direction: row-reverse;
+      }
+      .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 8px;
+      }
+      .message-avatar svg {
+        width: 100%;
+        height: 100%;
+      }
+      .message.user .message-avatar {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+      .message.bot .message-avatar {
+        background: linear-gradient(135deg, #76ff03 0%, #64dd17 100%);
+      }
+      .message-content {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 12px 16px;
+        border-radius: 16px;
+        max-width: 80%;
+        line-height: 1.5;
+      }
+      .message.user .message-content {
+        background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+      }
+
+      /* Markdown & Tools */
+      .message-content p {
+        margin: 0.5em 0;
+      }
+      .message-content ul {
+        margin: 0.5em 0;
+        padding-left: 1.5em;
+      }
+      .message-content strong {
+        font-weight: 600;
+        color: #76ff03;
+      }
+      .message-content code {
+        background: rgba(118, 255, 3, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
+      .message-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        overflow: hidden;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 0.85em;
+      }
+      .message-content thead {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+      }
+      .message-content th {
+        padding: 8px 10px;
+        text-align: left;
+        font-weight: 600;
+        color: #0a0a0a;
+        border-bottom: 2px solid rgba(118, 255, 3, 0.3);
+      }
+      .message-content td {
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .message-content img {
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 12px;
+        opacity: 0;
+        animation: fadeInImage 1s ease-in forwards;
+      }
+
+      .tool-execution {
+        background: rgba(118, 255, 3, 0.1);
+        border-left: 3px solid #76ff03;
+        padding: 8px 12px;
+        margin-top: 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #76ff03;
+        animation: fadeIn 0.3s ease-in;
+      }
+      .tool-execution.warning {
+        background: rgba(255, 82, 82, 0.1);
+        border-left-color: #ff5252;
+        color: #ff5252;
+      }
+      .tool-details {
+        margin-top: 6px;
+        padding-left: 12px;
+        font-size: 12px;
+        color: #888;
+        font-weight: 400;
+        line-height: 1.6;
+      }
+      @keyframes fadeInImage {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .typing-indicator {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #76ff03;
+        animation: typing 1.4s infinite;
+      }
+      .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.8);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* Input Area */
+      .input-area {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        gap: 12px;
+        position: relative;
+      }
+      .input-area input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 12px 16px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+      .input-area input:focus {
+        border-color: #76ff03;
+      }
+      .input-area button {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        color: #1a1a1a;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .input-area button:hover {
+        transform: scale(1.05);
+      }
+      .input-area button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Mic Button */
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+        }
+      }
+      .input-area button#micBtn {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .input-area button#micBtn.listening {
+        background: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+        animation: pulse-red 1.5s infinite;
+      }
+      .input-area button#micBtn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Toggle Switch */
+      .voice-toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px 10px 20px;
+        font-size: 12px;
+        color: #888;
+      }
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: 0.4s;
+        border-radius: 20px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #888;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: rgba(118, 255, 3, 0.2);
+      }
+      input:checked + .slider:before {
+        transform: translateX(16px);
+        background-color: #76ff03;
+      }
+
+      /* Scrollbar & Status Badge */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(118, 255, 3, 0.3);
+        border-radius: 4px;
+      }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .status-badge.warning {
+        background: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+      }
+      .status-badge.success {
+        background: rgba(118, 255, 3, 0.2);
+        color: #76ff03;
+      }
+      .status-badge .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Panel Grid & Tasks (Compact) */
+      .panel-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 20px;
+      }
+      .panel-cell {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .panel-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(118, 255, 3, 0.2);
+      }
+      .panel-cell.status-clean {
+        border-color: rgba(118, 255, 3, 0.5);
+      }
+      .panel-cell.status-clean .panel-cell-status {
+        color: #76ff03;
+        text-shadow: 0 0 20px rgba(118, 255, 3, 0.5);
+      }
+      .panel-cell.status-dirty {
+        border-color: rgba(255, 193, 7, 0.5);
+      }
+      .panel-cell.status-dirty .panel-cell-status {
+        color: #ffc107;
+        text-shadow: 0 0 20px rgba(255, 193, 7, 0.5);
+      }
+      .panel-cell.status-unknown {
+        border-color: rgba(158, 158, 158, 0.5);
+      }
+      .panel-cell.status-unknown .panel-cell-status {
+        color: #9e9e9e;
+        text-shadow: 0 0 20px rgba(158, 158, 158, 0.5);
+      }
+      .panel-cell.loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+      .panel-cell.loading .panel-cell-status {
+        animation: rotate 1s linear infinite;
+      }
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .panel-cell-status {
+        font-size: 48px;
+        margin: 12px 0;
+      }
+      .panel-cell-label {
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: capitalize;
+      }
+
+      /* Auto-suggestion Button Styles */
+      .auto-suggestion-container {
+        padding: 12px 16px;
+        margin: 8px 0;
+        background: rgba(118, 255, 3, 0.1);
+        border-left: 3px solid #76ff03;
+        border-radius: 8px;
+        animation: slideIn 0.3s ease-out;
+      }
+      .auto-suggestion-text {
+        font-size: 14px;
+        color: #e8f5e9;
+        margin-bottom: 10px;
+        line-height: 1.5;
+      }
+      .auto-suggestion-btn {
+        background: linear-gradient(135deg, #76ff03 0%, #cddc39 100%);
+        color: #0a0a0a;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(118, 255, 3, 0.3);
+      }
+      .auto-suggestion-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(118, 255, 3, 0.5);
+      }
+      .auto-suggestion-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .auto-suggestion-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .active-tasks-container {
+        padding: 20px;
+        min-height: 100px;
+      }
+      .task-item {
+        background: rgba(118, 255, 3, 0.05);
+        border: 1px solid rgba(118, 255, 3, 0.2);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .task-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .task-title {
+        display: flex;
+        gap: 10px;
+        font-weight: 600;
+        color: #76ff03;
+      }
+      .task-title svg {
+        width: 20px;
+        height: 20px;
+      }
+      .task-status {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .task-status.dispatched {
+        background: rgba(118, 255, 3, 0.2);
+        color: #76ff03;
+      }
+      .task-status.arrived {
+        background: rgba(33, 150, 243, 0.2);
+        color: #2196f3;
+      }
+      .task-status.cleaning_done {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+      }
+      .task-status.returned {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4caf50;
+      }
+      .task-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+      }
+      .task-progress-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .task-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #76ff03 0%, #cddc39 100%);
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      /* Test Buttons */
+      .test-buttons-container {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .test-btn {
+        background: rgba(118, 255, 3, 0.1);
+        border: 2px solid rgba(118, 255, 3, 0.3);
+        border-radius: 12px;
+        padding: 14px 20px;
+        color: #76ff03;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        width: 100%;
+      }
+      .test-btn:hover {
+        background: rgba(118, 255, 3, 0.2);
+        border-color: rgba(118, 255, 3, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(118, 255, 3, 0.3);
+      }
+      .test-btn:active {
+        transform: translateY(0);
+      }
+
+      /* --- LIVE MODE STYLES --- */
+      .live-mode-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(10, 10, 10, 0.95);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        gap: 15px;
+        z-index: 100;
+        border-radius: 16px 16px 0 0;
+        animation: slideUp 0.3s ease-out;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      .live-mode-overlay.active {
+        display: flex;
+      }
+
+      /* Prevent occlusion of messages */
+      .chatbox-container.live-active .messages {
+        padding-bottom: 240px; /* Reserve space for overlay */
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      /* Mockup Waveform */
+      .waveform-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        height: 40px;
+      }
+
+      .wave-bar {
+        width: 4px;
+        background: #76ff03;
+        border-radius: 2px;
+        animation: wave 1s ease-in-out infinite;
+      }
+
+      .wave-bar:nth-child(1) {
+        height: 10px;
+        animation-delay: 0s;
+      }
+      .wave-bar:nth-child(2) {
+        height: 15px;
+        animation-delay: 0.1s;
+      }
+      .wave-bar:nth-child(3) {
+        height: 20px;
+        animation-delay: 0.2s;
+      }
+      .wave-bar:nth-child(4) {
+        height: 25px;
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(5) {
+        height: 30px;
+        animation-delay: 0.4s;
+      }
+      .wave-bar:nth-child(6) {
+        height: 25px;
+        animation-delay: 0.5s;
+      }
+      .wave-bar:nth-child(7) {
+        height: 20px;
+        animation-delay: 0.4s;
+      }
+      .wave-bar:nth-child(8) {
+        height: 15px;
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(9) {
+        height: 10px;
+        animation-delay: 0.2s;
+      }
+
+      @keyframes wave {
+        0%,
+        100% {
+          transform: scaleY(1);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scaleY(2);
+          opacity: 1;
+        }
+      }
+
+      .waveform-container.silent .wave-bar {
+        animation: none;
+        height: 4px;
+        opacity: 0.3;
+      }
+
+      .live-transcript {
+        font-size: 16px;
+        color: #fff;
+        text-align: center;
+        min-height: 24px;
+        font-weight: 500;
+      }
+
+      .silence-progress {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        width: 100%;
+        display: none;
+      }
+
+      .silence-bar {
+        height: 100%;
+        background: #ff5252;
+        width: 100%;
+      }
+
+      .live-status {
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .live-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .live-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .live-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .live-btn.danger {
+        color: #ff5252;
+        border-color: rgba(255, 82, 82, 0.3);
+      }
+      .live-btn.danger:hover {
+        background: rgba(255, 82, 82, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Dashboard Section (Same structure) -->
+      <div class="dashboard">
+        <div class="header">
+          <div class="header-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2V4M12 20V22M4 12H2M6.31412 6.31412L4.8999 4.8999M17.6859 6.31412L19.1001 4.8999M6.31412 17.69L4.8999 19.1042M17.6859 17.69L19.1001 19.1042M22 12H20M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1>Solar Panel Maintenance System</h1>
+            <div style="display: flex; gap: 12px; margin-top: 8px">
+              <span class="status-badge warning" id="systemStatus"
+                ><span class="dot"></span>System Alert</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card warning" id="powerCard"
+            ><div class="label">Total Power Output</div
+            ><div class="value" id="powerValue">2.8 kW</div
+            ><div class="change" id="powerChange">↓ 35% Below Normal</div></div
+          >
+          <div class="stat-card warning" id="efficiencyCard"
+            ><div class="label">System Efficiency</div
+            ><div class="value" id="efficiencyValue">52%</div
+            ><div class="change" id="efficiencyChange">↓ Critical</div></div
+          >
+          <div class="stat-card" id="panelsCard"
+            ><div class="label">Active Panels</div
+            ><div class="value" id="panelsValue">14/18</div
+            ><div class="change" id="panelsChange">4 Panels Offline</div></div
+          >
+          <div class="stat-card warning" id="revenueCard"
+            ><div class="label">Daily Revenue</div
+            ><div class="value" id="revenueValue">$18.40</div
+            ><div class="change" id="revenueChange">↓ $12.60 Loss</div></div
+          >
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header"
+            ><h3>Power Generation (1hr)</h3
+            ><span class="date-range" id="dateRange">Real-time</span></div
+          >
+          <canvas id="powerChart"></canvas>
+        </div>
+
+        <!-- Panel Grid -->
+        <div class="chart-container">
+          <div class="chart-header"
+            ><h3>Panel Status Grid</h3
+            ><span class="date-range">Click to toggle status</span></div
+          >
+          <div class="panel-grid">
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-001"
+              data-route="1"
+              ><div class="panel-cell-header">Panel 1</div
+              ><div class="panel-cell-status">●</div
+              ><div class="panel-cell-label">Clean</div></div
+            >
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-002"
+              data-route="2"
+              ><div class="panel-cell-header">Panel 2</div
+              ><div class="panel-cell-status">●</div
+              ><div class="panel-cell-label">Clean</div></div
+            >
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-003"
+              data-route="3"
+              ><div class="panel-cell-header">Panel 3</div
+              ><div class="panel-cell-status">●</div
+              ><div class="panel-cell-label">Clean</div></div
+            >
+            <div
+              class="panel-cell status-clean"
+              data-panel-id="P-004"
+              data-route="4"
+              ><div class="panel-cell-header">Panel 4</div
+              ><div class="panel-cell-status">●</div
+              ><div class="panel-cell-label">Clean</div></div
+            >
+          </div>
+        </div>
+
+        <!-- Active Tasks -->
+        <div class="chart-container">
+          <div class="chart-header"
+            ><h3>Active Tasks</h3><span class="date-range">Real-time</span></div
+          >
+          <div id="activeTasksContainer" class="active-tasks-container"
+            ><div class="no-tasks-message">No active tasks</div></div
+          >
+        </div>
+
+        <!-- Test Buttons -->
+        <div class="chart-container">
+          <div class="chart-header"
+            ><h3>Test TTS</h3
+            ><span class="date-range">Simulate Task Completion</span></div
+          >
+          <div class="test-buttons-container">
+            <button class="test-btn" id="testArrivedBtn" data-status="arrived">
+              🤖 Simulate Arrived
+            </button>
+            <button
+              class="test-btn"
+              id="testCleaningDoneBtn"
+              data-status="cleaning_done"
+            >
+              ✨ Simulate Cleaning Done
+            </button>
+            <button
+              class="test-btn"
+              id="testReturnedBtn"
+              data-status="returned"
+            >
+              🏠 Simulate Returned
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ChatBox Section -->
+      <div class="chatbox-container">
+        <div class="chatbox-header">
+          <h2>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                fill="currentColor"
+              />
+              <circle cx="9" cy="11" r="1" fill="#0a0a0a" />
+              <circle cx="15" cy="11" r="1" fill="#0a0a0a" />
+              <path
+                d="M9 15H15"
+                stroke="#0a0a0a"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            AI Diagnostic Assistant
+          </h2>
+        </div>
+
+        <div class="messages" id="messages">
+          <div class="message bot">
+            <div class="message-avatar"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z"
+                  fill="currentColor"
+                />
+                <circle cx="9" cy="11" r="1.5" fill="#0a0a0a" />
+                <circle cx="15" cy="11" r="1.5" fill="#0a0a0a" />
+                <path
+                  d="M9 15H15"
+                  stroke="#0a0a0a"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                /></svg
+            ></div>
+            <div class="message-content"
+              >Hello! I'm your AI assistant. I can help diagnose and resolve
+              solar panel issues. Type your command below.</div
+            >
+          </div>
+        </div>
+
+        <!-- Standard Input -->
+        <div class="input-area">
+          <button id="micBtn" title="Voice Input"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" /></svg
+          ></button>
+          <input
+            type="text"
+            id="userInput"
+            placeholder="Type or use voice..."
+          />
+          <button id="sendBtn">Send</button>
+        </div>
+        <div class="voice-toggle-container">
+          <label class="toggle-switch"
+            ><input type="checkbox" id="voiceToggle" checked /><span
+              class="slider"
+            ></span
+          ></label>
+          <span>Enable Voice Response (TTS)</span>
+        </div>
+
+        <!-- LIVE MODE OVERLAY -->
+        <div class="live-mode-overlay" id="liveOverlay">
+          <div class="live-status" id="liveStatus">Listening...</div>
+          <div class="waveform-container" id="waveform">
+            <div class="wave-bar"></div><div class="wave-bar"></div
+            ><div class="wave-bar"></div><div class="wave-bar"></div
+            ><div class="wave-bar"></div><div class="wave-bar"></div
+            ><div class="wave-bar"></div><div class="wave-bar"></div
+            ><div class="wave-bar"></div>
+          </div>
+          <div class="live-transcript" id="liveTranscript"></div>
+          <div class="silence-progress" id="silenceProgress"
+            ><div class="silence-bar" id="silenceBar"></div
+          ></div>
+          <div class="live-controls">
+            <button class="live-btn" id="sendNowBtn">Send Now</button>
+            <button class="live-btn danger" id="stopLiveBtn"
+              >Stop Live Mode</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- CONFIG & DATA ---
+      const chartColors = {
+        normal: {
+          line1: "rgba(118, 255, 3, 0.9)",
+          line2: "rgba(205, 220, 57, 0.9)",
+          fill1: "rgba(118, 255, 3, 0.15)",
+          fill2: "rgba(205, 220, 57, 0.15)",
+        },
+        warning: {
+          line1: "rgba(255, 82, 82, 0.8)",
+          line2: "rgba(255, 171, 64, 0.8)",
+          fill1: "rgba(255, 82, 82, 0.1)",
+          fill2: "rgba(255, 171, 64, 0.1)",
+        },
+      };
+      const abnormalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          2.8, 2.7, 2.9, 2.8, 2.6, 2.7, 2.8, 2.9, 2.7, 2.8, 2.7, 2.8, 2.7,
+        ],
+        power2: [
+          3.1, 3.0, 3.2, 3.1, 2.9, 3.0, 3.1, 3.2, 3.0, 3.1, 3.0, 3.1, 3.0,
+        ],
+      };
+      const normalData = {
+        minutes: [
+          "0m",
+          "5m",
+          "10m",
+          "15m",
+          "20m",
+          "25m",
+          "30m",
+          "35m",
+          "40m",
+          "45m",
+          "50m",
+          "55m",
+          "60m",
+        ],
+        power1: [
+          4.2, 4.3, 4.5, 4.4, 4.6, 4.5, 4.7, 4.6, 4.5, 4.6, 4.7, 4.6, 4.5,
+        ],
+        power2: [
+          4.0, 4.1, 4.2, 4.1, 4.3, 4.2, 4.4, 4.3, 4.2, 4.3, 4.4, 4.3, 4.2,
+        ],
+      };
+      const powerCtx = document.getElementById("powerChart").getContext("2d");
+      const powerChart = new Chart(powerCtx, {
+        type: "line",
+        data: {
+          labels: abnormalData.minutes,
+          datasets: [
+            {
+              label: "Array A",
+              data: abnormalData.power1,
+              borderColor: chartColors.warning.line1,
+              fill: true,
+            },
+            {
+              label: "Array B",
+              data: abnormalData.power2,
+              borderColor: chartColors.warning.line2,
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } },
+        },
+      });
+      const API_BASE_URL = "http://localhost:8000";
+      let conversationId = null;
+      let isSystemNormal = false;
+      let chartUpdateInterval = null;
+      let activeTasksInterval = null;
+      const IMAGE_MAPPING = {
+        detect_panel_faults:
+          "https://cdn.discordapp.com/attachments/1240495004389085184/1436490171301494914/yolo.jpg?ex=690fcb39&is=690e79b9&hm=1ec2463fdf4ccc3592b2fa4e196c66885275af0676c8dad6717b2fe92988082b&",
+        rover_task_complete:
+          "../outside/coordination-server/images/panel_healthy.png",
+      };
+
+      // --- DOM ELEMENTS ---
+      const messagesContainer = document.getElementById("messages");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const micBtn = document.getElementById("micBtn");
+      const voiceToggle = document.getElementById("voiceToggle");
+      const liveOverlay = document.getElementById("liveOverlay");
+      const liveStatus = document.getElementById("liveStatus");
+      const waveform = document.getElementById("waveform");
+      const liveTranscript = document.getElementById("liveTranscript");
+      const silenceProgress = document.getElementById("silenceProgress");
+      const silenceBar = document.getElementById("silenceBar");
+      const sendNowBtn = document.getElementById("sendNowBtn");
+      const stopLiveBtn = document.getElementById("stopLiveBtn");
+
+      // --- LIVE MODE MANAGER ---
+      const LiveMode = {
+        isActive: false,
+        silenceTimer: null,
+        silenceTimeoutMs: 5000,
+        currentState: "IDLE",
+
+        start() {
+          this.isActive = true;
+          liveOverlay.classList.add("active");
+          document
+            .querySelector(".chatbox-container")
+            .classList.add("live-active");
+          this.setState("LISTENING");
+          startSpeechRecognition();
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        },
+
+        stop() {
+          this.isActive = false;
+          this.clearSilenceTimer();
+          liveOverlay.classList.remove("active");
+          document
+            .querySelector(".chatbox-container")
+            .classList.remove("live-active");
+          this.setState("IDLE");
+          stopSpeechRecognition();
+        },
+
+        setState(state) {
+          this.currentState = state;
+          switch (state) {
+            case "LISTENING":
+              liveStatus.textContent = "Listening...";
+              waveform.classList.remove("silent");
+              silenceProgress.style.display = "none";
+              break;
+            case "SILENCE_COUNTDOWN":
+              liveStatus.textContent = "Waiting for more input...";
+              waveform.classList.add("silent");
+              silenceProgress.style.display = "block";
+              silenceBar.style.width = "100%";
+              requestAnimationFrame(() => {
+                silenceBar.style.transition = `width ${this.silenceTimeoutMs}ms linear`;
+                silenceBar.style.width = "0%";
+              });
+              break;
+            case "PROCESSING":
+              liveStatus.textContent = "Processing...";
+              waveform.classList.add("silent");
+              silenceProgress.style.display = "none";
+              break;
+            case "SPEAKING":
+              liveStatus.textContent = "Assistant Speaking...";
+              waveform.classList.remove("silent");
+              silenceProgress.style.display = "none";
+              break;
+          }
+        },
+
+        startSilenceCountdown() {
+          if (!this.isActive || this.currentState === "PROCESSING") return;
+          this.clearSilenceTimer();
+          this.setState("SILENCE_COUNTDOWN");
+          this.silenceTimer = setTimeout(() => {
+            this.sendCurrentInput();
+          }, this.silenceTimeoutMs);
+        },
+
+        clearSilenceTimer() {
+          if (this.silenceTimer) {
+            clearTimeout(this.silenceTimer);
+            this.silenceTimer = null;
+          }
+          silenceBar.style.transition = "none";
+          silenceBar.style.width = "100%";
+        },
+
+        cancelSilenceCountdown() {
+          this.clearSilenceTimer();
+          this.setState("LISTENING");
+        },
+
+        async sendCurrentInput() {
+          const text = liveTranscript.textContent.trim();
+          if (!text) {
+            this.setState("LISTENING");
+            return;
+          }
+          this.setState("PROCESSING");
+          liveTranscript.textContent = "";
+
+          // Send to API (this function handles TTS)
+          await sendMessageToAPI(text);
+
+          // After API done, if still active, restart listening
+          if (this.isActive) {
+            // Note: sendMessageToAPI is async and resolves when processing is done (including TTS if we await it)
+            // But since we might stream and speak, we need to coordinate carefully.
+            // For now, we rely on speakText's onend to trigger LISTENING state back.
+          }
+        },
+
+        onSpeechStart() {
+          if (this.currentState === "SILENCE_COUNTDOWN")
+            this.cancelSilenceCountdown();
+          this.setState("LISTENING");
+        },
+        onSpeechResult(text) {
+          liveTranscript.textContent = text;
+          this.cancelSilenceCountdown();
+        },
+        onSpeechEnd() {
+          this.startSilenceCountdown();
+        },
+      };
+
+      // --- SPEECH RECOGNITION ---
+      let recognition = null;
+      function startSpeechRecognition() {
+        if (recognition) {
+          try {
+            recognition.start();
+          } catch (e) {}
+          return;
+        }
+        if (!("webkitSpeechRecognition" in window)) {
+          alert("Speech recognition not supported");
+          return;
+        }
+
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+
+        recognition.onstart = () => {
+          if (LiveMode.isActive) LiveMode.onSpeechStart();
+        };
+        recognition.onend = () => {
+          if (
+            LiveMode.isActive &&
+            LiveMode.currentState !== "PROCESSING" &&
+            LiveMode.currentState !== "SPEAKING"
+          ) {
+            try {
+              recognition.start();
+            } catch (e) {}
+          }
+        };
+        recognition.onresult = (event) => {
+          if (!LiveMode.isActive) return;
+          let interim = "",
+            final = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal)
+              final += event.results[i][0].transcript;
+            else interim += event.results[i][0].transcript;
+          }
+          LiveMode.onSpeechResult(final || interim);
+          if (final) LiveMode.onSpeechEnd();
+        };
+        recognition.onerror = (event) => {
+          if (event.error === "not-allowed") {
+            LiveMode.stop();
+            alert("Microphone denied.");
+          }
+        };
+        recognition.start();
+      }
+      function stopSpeechRecognition() {
+        if (recognition) recognition.stop();
+      }
+
+      // --- TTS ---
+      let preferredVoice = null;
+      function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0)
+          preferredVoice =
+            voices.find((v) => v.name === "Google UK English Female") ||
+            voices.find((v) => v.name.includes("English"));
+      }
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+
+      function speakText(text) {
+        return new Promise((resolve) => {
+          if (!voiceToggle.checked) {
+            resolve();
+            return;
+          }
+          const plainText = text.replace(/<[^>]*>/g, "").trim();
+          if (!plainText) {
+            resolve();
+            return;
+          }
+
+          if (LiveMode.isActive) LiveMode.setState("SPEAKING");
+
+          const utterance = new SpeechSynthesisUtterance(plainText);
+          if (preferredVoice) utterance.voice = preferredVoice;
+          utterance.rate = 1.0;
+
+          utterance.onend = () => {
+            if (LiveMode.isActive) {
+              LiveMode.setState("LISTENING");
+              try {
+                recognition.start();
+              } catch (e) {}
+            }
+            resolve();
+          };
+          utterance.onerror = () => resolve();
+          window.speechSynthesis.speak(utterance);
+        });
+      }
+
+      // --- MESSAGE & API HANDLING ---
+      function createMessageElement(text, isUser) {
+        const div = document.createElement("div");
+        div.className = `message ${isUser ? "user" : "bot"}`;
+        div.innerHTML = `<div class="message-avatar">${
+          isUser
+            ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="currentColor"/><path d="M12 14C6.47715 14 2 17.5817 2 22H22C22 17.5817 17.5228 14 12 14Z" fill="currentColor"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg>'
+        }</div><div class="message-content">${text}</div>`;
+        return div;
+      }
+
+      function showTypingIndicator() {
+        const div = document.createElement("div");
+        div.className = "message bot";
+        div.id = "typing";
+        div.innerHTML = `<div class="message-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C10.8954 2 10 2.89543 10 4V5H6C4.89543 5 4 5.89543 4 7V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V7C20 5.89543 19.1046 5 18 5H14V4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/><circle cx="9" cy="11" r="1.5" fill="#0a0a0a"/><circle cx="15" cy="11" r="1.5" fill="#0a0a0a"/><path d="M9 15H15" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/></svg></div><div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+      function removeTypingIndicator() {
+        const el = document.getElementById("typing");
+        if (el) el.remove();
+      }
+
+      function parseMarkdown(text) {
+        let html = text;
+        html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+        html = html.replace(/\n/g, "<br>");
+        return html;
+      }
+
+      async function sendMessageToAPI(messageText) {
+        if (!messageText.trim()) return;
+
+        const userMsgDiv = createMessageElement(messageText, true);
+        messagesContainer.appendChild(userMsgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        showTypingIndicator();
+
+        let apiMessageContent = messageText;
+        if (voiceToggle.checked)
+          apiMessageContent +=
+            "\n\n(System: Keep response brief and conversational for voice mode.)";
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [{ role: "user", content: apiMessageContent }],
+              conversation_id: conversationId,
+            }),
+          });
+
+          removeTypingIndicator();
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let botMsgDiv = null,
+            contentDiv = null,
+            currentText = "";
+          let currentToolMsgDiv = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const buffer = decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n\n");
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === "token") {
+                  currentText += data.content;
+                  if (!botMsgDiv) {
+                    botMsgDiv = createMessageElement("", false);
+                    if (currentToolMsgDiv)
+                      currentToolMsgDiv.insertAdjacentElement(
+                        "afterend",
+                        botMsgDiv
+                      );
+                    else messagesContainer.appendChild(botMsgDiv);
+                    contentDiv = botMsgDiv.querySelector(".message-content");
+                  }
+                  contentDiv.innerHTML = parseMarkdown(currentText);
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                } else if (data.type === "tool_call") {
+                  currentToolMsgDiv = createMessageElement("", false);
+                  messagesContainer.appendChild(currentToolMsgDiv);
+                  const content =
+                    currentToolMsgDiv.querySelector(".message-content");
+                  const toolName = data.tool_name
+                    .split("_")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ");
+                  content.innerHTML = `<div class="tool-execution"><strong style="color:#76ff03">Executing: ${toolName}</strong><div class="tool-details">Processing...</div></div>`;
+                  if (voiceToggle.checked)
+                    speakText(`Running tool: ${toolName}`);
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                } else if (data.type === "conversation_id") {
+                  conversationId = data.id;
+                  console.log("Conversation ID:", conversationId);
+                } else if (data.type === "tool_result") {
+                  if (currentToolMsgDiv) {
+                    const content =
+                      currentToolMsgDiv.querySelector(".message-content");
+                    let resultText = "Execution Complete";
+                    // Simple result formatting for demo
+                    if (data.result && data.result.summary)
+                      resultText = data.result.summary;
+                    content.innerHTML = content.innerHTML.replace(
+                      "Processing...",
+                      `<div style='margin-top:8px; color:#fff'>✓ ${resultText}</div>`
+                    );
+                  }
+                  // Trigger updates if needed
+                  if (data.result && data.result.dashboard) {
+                    // Update dashboard simplified
+                    document.getElementById(
+                      "powerValue"
+                    ).textContent = `${data.result.dashboard.total_power_output_kw} kW`;
+                  }
+
+                  // Check if this is a rover dispatch - start polling for status updates
+                  if (
+                    currentToolMsgDiv &&
+                    currentToolMsgDiv
+                      .querySelector(".tool-execution")
+                      ?.textContent.includes("Dispatch Rover") &&
+                    data.result &&
+                    data.result.task_id
+                  ) {
+                    console.log(
+                      "[Rover] Detected rover task, starting polling:",
+                      data.result.task_id
+                    );
+                    if (conversationId) startPolling(conversationId);
+                    fetchActiveTasks();
+                  }
+
+                  // After any tool result, refresh panels and dashboard
+                  fetchPanelStatus();
+                  fetchActiveTasks();
+                } else if (data.type === "done") {
+                  if (currentText && voiceToggle.checked)
+                    await speakText(currentText);
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (error) {
+          removeTypingIndicator();
+          const errDiv = createMessageElement(`Error: ${error.message}`, false);
+          messagesContainer.appendChild(errDiv);
+        }
+      }
+
+      // --- ROVER POLLING ---
+      let pollingInterval = null;
+      let lastCheckTime = null;
+
+      function startPolling(convId) {
+        if (pollingInterval) return;
+        console.log("[Polling] Starting rover status polling");
+        lastCheckTime = new Date().toISOString();
+
+        pollingInterval = setInterval(async () => {
+          try {
+            const url = `${API_BASE_URL}/api/conversations/${convId}/recent?since=${lastCheckTime}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const newMessages = data.messages.filter(
+              (msg) =>
+                msg.role === "system" && msg.metadata?.type === "rover_status"
+            );
+
+            newMessages.forEach((msg) => {
+              displayRoverStatus(msg.content, msg.metadata);
+            });
+
+            lastCheckTime = data.timestamp;
+          } catch (error) {
+            console.error("[Polling] Error:", error);
+          }
+        }, 1000);
+      }
+
+      function stopPolling() {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+          console.log("[Polling] Stopped");
+        }
+      }
+
+      function displayRoverStatus(message, metadata) {
+        const statusDiv = document.createElement("div");
+        statusDiv.className = "rover-status-update";
+
+        const statusEmoji = {
+          arrived: "🤖",
+          cleaning_done: "✨",
+          returned: "🏠",
+        };
+        const emoji = statusEmoji[metadata.status] || "📡";
+        statusDiv.textContent = `${emoji} ${message}`;
+
+        // TTS Trigger - Announce task status updates
+        // speakText already checks voiceToggle internally
+        if (voiceToggle.checked) {
+          // Provide more explicit messages for task completion
+          let ttsMessage = message;
+          if (metadata.status === "cleaning_done") {
+            ttsMessage = `Task completed. ${message}`;
+          } else if (metadata.status === "returned") {
+            ttsMessage = `Rover returned. ${message}`;
+          }
+          speakText(ttsMessage);
+        }
+
+        statusDiv.style.cssText = `
+          padding: 10px 14px;
+          margin: 8px 0;
+          background: rgba(118, 255, 3, 0.1);
+          border-left: 3px solid #76ff03;
+          border-radius: 6px;
+          font-size: 0.9em;
+          animation: slideIn 0.3s ease-out;
+        `;
+
+        messagesContainer.appendChild(statusDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Immediately refresh active tasks when rover status updates
+        fetchActiveTasks();
+      }
+
+      // --- TEST FUNCTION: Simulate Rover Status Update ---
+      function simulateRoverStatusUpdate(status, panelId = "P-001") {
+        const statusMessages = {
+          arrived: `🤖 Rover arrived at panel ${panelId}`,
+          cleaning_done: `✨ Cleaning completed on panel ${panelId}`,
+          returned: `🏠 Rover returned to base station`,
+        };
+
+        const message =
+          statusMessages[status] || `Rover status update: ${status}`;
+
+        const metadata = {
+          type: "rover_status",
+          task_id: `test-${Date.now()}`,
+          status: status,
+          panel_id: panelId,
+          timestamp: new Date().toISOString(),
+        };
+
+        displayRoverStatus(message, metadata);
+      }
+
+      // --- PANEL & CHART LOGIC ---
+
+      // 1. Fetch and update panel status
+      async function fetchPanelStatus() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/panels/status`);
+          if (response.ok) {
+            const data = await response.json();
+            updatePanelGrid(data.panels);
+          }
+        } catch (error) {
+          console.error("[Panel Grid] Failed to fetch status:", error);
+        }
+      }
+
+      // 2. Update panel grid UI
+      function updatePanelGrid(panels) {
+        const panelCells = document.querySelectorAll(".panel-cell");
+        let hasDirtyPanels = false;
+
+        panelCells.forEach((cell) => {
+          const panelId = cell.getAttribute("data-panel-id");
+          const panel = panels.find((p) => p.panel_id === panelId);
+
+          if (panel) {
+            const status = panel.status.toLowerCase();
+            const label = cell.querySelector(".panel-cell-label");
+            label.textContent =
+              panel.status.charAt(0).toUpperCase() + panel.status.slice(1);
+
+            cell.classList.remove(
+              "status-clean",
+              "status-dirty",
+              "status-unknown"
+            );
+            cell.classList.add(`status-${status}`);
+
+            if (status === "dirty") hasDirtyPanels = true;
+          }
+        });
+
+        updateAutoSuggestionButton(hasDirtyPanels);
+        updateDashboardForDirtyPanels(panels);
+      }
+
+      // 3. Toggle panel status
+      async function togglePanelStatus(panelId, currentStatus) {
+        const statusOrder = ["clean", "dirty", "unknown"];
+        const nextIndex =
+          (statusOrder.indexOf(currentStatus.toLowerCase()) + 1) %
+          statusOrder.length;
+        const newStatus = statusOrder[nextIndex];
+
+        try {
+          await fetch(`${API_BASE_URL}/api/panels/status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ panel_id: panelId, status: newStatus }),
+          });
+          await fetchPanelStatus();
+        } catch (error) {
+          console.error("Error updating status:", error);
+        }
+      }
+
+      // 4. Update Dashboard
+      async function updateDashboardForDirtyPanels(panels) {
+        const dirtyCount = panels.filter((p) => p.status === "dirty").length;
+        if (dirtyCount > 0) {
+          try {
+            const response = await fetch(
+              `${API_BASE_URL}/api/dashboard/status`
+            );
+            if (response.ok) {
+              const dashboard = await response.json();
+              document.getElementById(
+                "powerValue"
+              ).textContent = `${dashboard.total_power_output} kW`;
+              document.getElementById(
+                "efficiencyValue"
+              ).textContent = `${dashboard.system_efficiency}%`;
+              document.getElementById("panelsValue").textContent =
+                dashboard.active_panels;
+              document.getElementById(
+                "revenueValue"
+              ).textContent = `$${dashboard.daily_revenue}`;
+
+              // Simplified warning logic
+              const pChange = document.getElementById("powerChange");
+              if (
+                dashboard.total_power_output < dashboard.normal_power_output
+              ) {
+                pChange.textContent = "↓ Below Normal";
+                pChange.parentElement.classList.add("warning");
+              }
+            }
+          } catch (e) {}
+        } else {
+          // Reset to normal
+          document.getElementById("powerValue").textContent = "4.3 kW";
+          document.getElementById("efficiencyValue").textContent = "85%";
+          document.getElementById("panelsValue").textContent = "4/4"; // Demo has 4 panels in grid
+          document.getElementById("revenueValue").textContent = "$31.00";
+          document.getElementById("powerCard").classList.remove("warning");
+          document.getElementById("powerChange").textContent = "✓ Normal";
+        }
+      }
+
+      // 5. Auto Suggestion
+      function updateAutoSuggestionButton(hasDirtyPanels) {
+        const messagesContainer = document.getElementById("messages");
+        let suggestionContainer = document.getElementById(
+          "autoSuggestionContainer"
+        );
+
+        if (hasDirtyPanels) {
+          if (!suggestionContainer) {
+            suggestionContainer = document.createElement("div");
+            suggestionContainer.id = "autoSuggestionContainer";
+            suggestionContainer.className = "auto-suggestion-container";
+            suggestionContainer.innerHTML = `
+              <div class="auto-suggestion-text">⚠️ Dirty panels detected!</div>
+              <button class="auto-suggestion-btn">Dispatch Rover</button>
+            `;
+            suggestionContainer.querySelector("button").onclick =
+              async function () {
+                this.disabled = true;
+                this.innerHTML = "Processing...";
+                await sendMessageToAPI(
+                  "Please check panel status and dispatch rover to clean dirty panels."
+                );
+                this.remove();
+              };
+            messagesContainer.appendChild(suggestionContainer);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          } else {
+            suggestionContainer.style.display = "block";
+          }
+        } else {
+          if (suggestionContainer) suggestionContainer.style.display = "none";
+        }
+      }
+
+      // 6. Active Tasks
+      async function fetchActiveTasks() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/tasks/active`);
+          if (response.ok) {
+            const data = await response.json();
+            updateActiveTasksDisplay(data.active_tasks || []);
+          }
+        } catch (error) {}
+      }
+
+      function updateActiveTasksDisplay(tasks) {
+        const container = document.getElementById("activeTasksContainer");
+        if (!tasks || tasks.length === 0) {
+          container.innerHTML =
+            '<div class="no-tasks-message">No active tasks</div>';
+          return;
+        }
+        container.innerHTML = tasks
+          .map(
+            (task) => `
+          <div class="task-item">
+            <div class="task-header">
+              <div class="task-title"><span>${
+                task.type === "rover" ? "Rover" : "Drone"
+              } Task</span></div>
+              <div class="task-status ${task.status}">${task.status}</div>
+            </div>
+            <div class="task-details">
+               <div class="task-detail-item"><div class="task-detail-label">Panel</div><div class="task-detail-value">${
+                 task.panel_id
+               }</div></div>
+               <div class="task-detail-item"><div class="task-detail-label">Status</div><div class="task-detail-value">${
+                 task.status
+               }</div></div>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      // 7. Chart Animation
+      function updateChartRealtime() {
+        const baseData = isSystemNormal ? normalData : abnormalData;
+        const newData1 = baseData.power1.map((val) =>
+          Math.max(0, val + (Math.random() - 0.5) * 0.2)
+        );
+        const newData2 = baseData.power2.map((val) =>
+          Math.max(0, val + (Math.random() - 0.5) * 0.2)
+        );
+
+        powerChart.data.datasets[0].data = newData1;
+        powerChart.data.datasets[1].data = newData2;
+        powerChart.update("none");
+      }
+
+      function startChartUpdates() {
+        if (!chartUpdateInterval)
+          chartUpdateInterval = setInterval(updateChartRealtime, 200);
+      }
+
+      function stopChartUpdates() {
+        if (chartUpdateInterval) clearInterval(chartUpdateInterval);
+      }
+
+      function initPanelGrid() {
+        document.querySelectorAll(".panel-cell").forEach((cell) => {
+          cell.addEventListener("click", async () => {
+            const panelId = cell.getAttribute("data-panel-id");
+            const currentStatus =
+              cell.querySelector(".panel-cell-label").textContent;
+            cell.classList.add("loading");
+            await togglePanelStatus(panelId, currentStatus);
+            cell.classList.remove("loading");
+          });
+        });
+      }
+
+      function startActiveTasksPolling() {
+        fetchActiveTasks();
+        if (!activeTasksInterval)
+          activeTasksInterval = setInterval(fetchActiveTasks, 2000);
+      }
+
+      function stopActiveTasksPolling() {
+        if (activeTasksInterval) clearInterval(activeTasksInterval);
+      }
+
+      // --- INIT ---
+      window.addEventListener("load", () => {
+        loadVoices();
+        micBtn.addEventListener("click", () =>
+          LiveMode.isActive ? LiveMode.stop() : LiveMode.start()
+        );
+        stopLiveBtn.addEventListener("click", () => LiveMode.stop());
+        sendNowBtn.addEventListener("click", () => LiveMode.sendCurrentInput());
+        sendBtn.addEventListener("click", () => {
+          const txt = userInput.value;
+          if (txt) {
+            sendMessageToAPI(txt);
+            userInput.value = "";
+          }
+        });
+
+        // Test buttons for simulating rover status updates
+        document
+          .getElementById("testArrivedBtn")
+          .addEventListener("click", () => {
+            simulateRoverStatusUpdate("arrived", "P-001");
+          });
+        document
+          .getElementById("testCleaningDoneBtn")
+          .addEventListener("click", () => {
+            simulateRoverStatusUpdate("cleaning_done", "P-001");
+          });
+        document
+          .getElementById("testReturnedBtn")
+          .addEventListener("click", () => {
+            simulateRoverStatusUpdate("returned", "P-001");
+          });
+
+        // Initialize charts and tasks
+        startChartUpdates();
+        initPanelGrid();
+        startActiveTasksPolling();
+        fetchPanelStatus(); // Initial fetch
+      });
+
+      window.addEventListener("beforeunload", () => {
+        stopChartUpdates();
+        stopActiveTasksPolling();
+      });
+    </script>
+  </body>
+</html>

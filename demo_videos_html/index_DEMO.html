@@ -418,6 +418,94 @@
         }
       }
 
+      /* Mic Button Animation */
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+        }
+      }
+
+      .input-area button#micBtn {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .input-area button#micBtn.listening {
+        background: rgba(255, 82, 82, 0.2);
+        color: #ff5252;
+        animation: pulse-red 1.5s infinite;
+      }
+
+      .input-area button#micBtn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Toggle Switch */
+      .voice-toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px 10px 20px;
+        font-size: 12px;
+        color: #888;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: 0.4s;
+        border-radius: 20px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #888;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: rgba(118, 255, 3, 0.2);
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(16px);
+        background-color: #76ff03;
+      }
+
       /* Scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
@@ -562,12 +650,34 @@
           </div>
         </div>
         <div class="input-area">
+          <button id="micBtn" title="Voice Input">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
           <input
             type="text"
             id="userInput"
             placeholder="Type 'Run a full diagnostic' to start..."
           />
           <button id="sendBtn">Send</button>
+        </div>
+        <div class="voice-toggle-container">
+          <label class="toggle-switch">
+            <input type="checkbox" id="voiceToggle" checked />
+            <span class="slider"></span>
+          </label>
+          <span>Enable Voice Response (TTS)</span>
         </div>
       </div>
     </div>
@@ -768,9 +878,104 @@
       const messagesContainer = document.getElementById("messages");
       const userInput = document.getElementById("userInput");
       const sendBtn = document.getElementById("sendBtn");
+      const micBtn = document.getElementById("micBtn"); // Mic Button
+      const voiceToggle = document.getElementById("voiceToggle"); // Voice Toggle
       let isDemoRunning = false;
       let isSystemNormal = false; // Track system state
       let chartUpdateInterval = null;
+
+      // --- Speech Recognition (STT) ---
+      function setupSpeechRecognition() {
+        if (!("webkitSpeechRecognition" in window)) {
+          console.log("Speech recognition not supported");
+          micBtn.style.display = "none";
+          return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US"; // Default to English for this demo
+
+        recognition.onstart = () => {
+          micBtn.classList.add("listening");
+          userInput.placeholder = "Listening...";
+        };
+
+        recognition.onend = () => {
+          micBtn.classList.remove("listening");
+          userInput.placeholder = "Type 'Run a full diagnostic' to start...";
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          userInput.value = transcript;
+          // Optional: Auto-send if high confidence or specific keywords
+          // setTimeout(() => sendBtn.click(), 500);
+        };
+
+        micBtn.addEventListener("click", () => {
+          if (micBtn.classList.contains("listening")) {
+            recognition.stop();
+          } else {
+            recognition.start();
+          }
+        });
+      }
+
+      // --- Text to Speech (TTS) ---
+      // Note: To use Gemini API for TTS, you would typically hit a backend or specific endpoint.
+      // For this frontend-only demo, we default to Native Browser TTS, but provide the structure for API calls.
+      function speakText(text) {
+        return new Promise((resolve) => {
+          // Check if voice is enabled
+          if (!voiceToggle.checked) {
+            resolve();
+            return;
+          }
+
+          // Strip HTML tags for speech
+          const plainText = text.replace(/<[^>]*>/g, "");
+
+          // OPTION 1: Native Browser TTS (Free, Fast, Works Offline)
+          if ("speechSynthesis" in window) {
+            // REMOVED: window.speechSynthesis.cancel(); 
+            // Allowing queueing prevents cutting off the previous sentence.
+
+            const utterance = new SpeechSynthesisUtterance(plainText);
+            utterance.lang = "en-US";
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            // Select a good voice if available
+            const voices = window.speechSynthesis.getVoices();
+            // Try to find a Google voice or a natural sounding one
+            const preferredVoice = voices.find(
+              (v) => v.name.includes("Google") || v.name.includes("Natural")
+            );
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            utterance.onend = () => {
+              resolve();
+            };
+
+            utterance.onerror = (e) => {
+              console.error("TTS Error:", e);
+              resolve(); // Resolve anyway to continue flow
+            };
+
+            window.speechSynthesis.speak(utterance);
+          } else {
+            console.warn("TTS not supported");
+            resolve();
+          }
+
+          // OPTION 2: External API (Placeholder)
+          /*
+          // If using API, fetch and play audio, then resolve() when audio.onended fires
+          */
+        });
+      }
 
       function addMessage(
         text,
@@ -809,6 +1014,9 @@
               resolve();
             }, 500);
           } else {
+            // Speak the bot's response
+            const speechPromise = speakText(text);
+
             // Streaming effect
             let index = 0;
             const interval = setInterval(() => {
@@ -851,11 +1059,16 @@
                   content.appendChild(img);
                 }
 
-                setTimeout(() => {
-                  // Final scroll
-                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                  resolve();
-                }, 800);
+                // Wait for BOTH typing animation AND speech to finish before resolving
+                // This ensures the demo flow doesn't proceed until the bot is done talking
+                speechPromise.then(() => {
+                  setTimeout(() => {
+                    // Final scroll
+                    messagesContainer.scrollTop =
+                      messagesContainer.scrollHeight;
+                    resolve();
+                  }, 800);
+                });
               }
             }, 30);
           }
@@ -1024,7 +1237,7 @@
           }
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Step 3: Fault detected with image
         showTypingIndicator();
@@ -1043,7 +1256,7 @@
           }
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 2500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // Step 4: Rover deployment
         showTypingIndicator();
@@ -1061,7 +1274,7 @@
           }
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         // Step 5: Rover completed with image
         showTypingIndicator();
@@ -1079,7 +1292,7 @@
           }
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Step 6: System restored
         showTypingIndicator();
@@ -1124,6 +1337,7 @@
       // Start real-time chart updates when page loads
       window.addEventListener("load", () => {
         startChartUpdates();
+        setupSpeechRecognition(); // Initialize Voice Features
       });
 
       // Clean up on page unload
