@@ -625,19 +625,36 @@ def rover_webhook():
     # Get associated conversation
     conversation_id = rover_tasks[task_id].get("conversation_id")
     panel_id = data.get("panel_id", rover_tasks[task_id].get("panel_id", "unknown"))
+    cluster_id = rover_tasks[task_id].get("cluster_id", "CL-001")
     
-    # Create status message for conversation history
+    # Create structured status message for conversation history
+    # Format messages to be clear and actionable for the AI
     status_messages = {
-        "arrived": f"🤖 Rover arrived at panel {panel_id}",
-        "cleaning_done": f"✨ Cleaning completed on panel {panel_id}",
-        "returned": f"🏠 Rover returned to base station"
+        "arrived": f"Rover has arrived at panel {panel_id} and is preparing to clean.",
+        "cleaning_done": f"Rover has completed cleaning panel {panel_id}. The panel is now clean.",
+        "returned": f"Rover has returned to base station after completing the cleaning task for panel {panel_id}. Panel {panel_id} status has been updated to clean."
     }
     
-    message = status_messages.get(status, f"Rover status update: {status}")
+    # Base message
+    base_message = status_messages.get(status, f"Rover status update: {status} for panel {panel_id}")
     
-    # Add to conversation history with metadata
+    # Add context for completed tasks
+    if status == "returned":
+        # Include summary information for completed tasks
+        task_info = rover_tasks[task_id]
+        completion_message = (
+            f"Task completed: Rover successfully cleaned panel {panel_id} in cluster {cluster_id}. "
+            f"The panel status has been updated from dirty to clean. "
+            f"System dashboard metrics have been updated accordingly."
+        )
+        message = completion_message
+    else:
+        message = base_message
+    
+    # Add to conversation history with comprehensive metadata
     if conversation_id:
-        chat_history_provider.add_message(conversation_id, {
+        # Create a structured message that AI can understand
+        system_message = {
             "role": "system",
             "content": message,
             "metadata": {
@@ -645,10 +662,33 @@ def rover_webhook():
                 "task_id": task_id,
                 "status": status,
                 "panel_id": panel_id,
-                "timestamp": datetime.datetime.now().isoformat()
+                "cluster_id": cluster_id,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "rover_data": data  # Include full rover data for context
             }
-        })
-        print(f"✅ [Webhook] Rover status stored in conversation {conversation_id}: {status}")
+        }
+        
+        chat_history_provider.add_message(conversation_id, system_message)
+        print(f"✅ [Webhook] Rover status stored in conversation {conversation_id}: {status} (panel {panel_id})")
+        
+        # If task is completed, add a summary message for AI context
+        if status == "returned":
+            summary_message = {
+                "role": "system",
+                "content": (
+                    f"Rover task {task_id} has been completed. "
+                    f"Panel {panel_id} is now clean and operational. "
+                    f"You can check the panel status or dashboard to confirm the improvements."
+                ),
+                "metadata": {
+                    "type": "task_completion_summary",
+                    "task_id": task_id,
+                    "panel_id": panel_id,
+                    "timestamp": datetime.datetime.now().isoformat()
+                }
+            }
+            chat_history_provider.add_message(conversation_id, summary_message)
+            print(f"✅ [Webhook] Task completion summary added to conversation {conversation_id}")
     else:
         print(f"⚠️ [Webhook] No conversation_id for task {task_id}")
     

@@ -1666,12 +1666,15 @@
         return html;
       }
 
-      async function sendMessageToAPI(messageText) {
+      async function sendMessageToAPI(messageText, hideUserMessage = false) {
         if (!messageText.trim()) return;
 
-        const userMsgDiv = createMessageElement(messageText, true);
-        messagesContainer.appendChild(userMsgDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Only show user message if not hidden (for auto-generated system messages)
+        if (!hideUserMessage) {
+          const userMsgDiv = createMessageElement(messageText, true);
+          messagesContainer.appendChild(userMsgDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
         showTypingIndicator();
 
         let apiMessageContent = messageText;
@@ -1689,8 +1692,10 @@
             }),
           });
 
-          removeTypingIndicator();
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          if (!response.ok) {
+            removeTypingIndicator();
+            throw new Error(`HTTP ${response.status}`);
+          }
 
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
@@ -1698,10 +1703,17 @@
             contentDiv = null,
             currentText = "";
           let currentToolMsgDiv = null;
+          let firstTokenReceived = false;
 
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              // If stream ended without receiving any tokens, remove typing indicator
+              if (!firstTokenReceived) {
+                removeTypingIndicator();
+              }
+              break;
+            }
             const buffer = decoder.decode(value, { stream: true });
             const lines = buffer.split("\n\n");
 
@@ -1711,6 +1723,12 @@
                 const data = JSON.parse(line.slice(6));
 
                 if (data.type === "token") {
+                  // Remove typing indicator when first token arrives
+                  if (!firstTokenReceived) {
+                    removeTypingIndicator();
+                    firstTokenReceived = true;
+                  }
+                  
                   currentText += data.content;
                   if (!botMsgDiv) {
                     botMsgDiv = createMessageElement("", false);
@@ -1725,6 +1743,12 @@
                   contentDiv.innerHTML = parseMarkdown(currentText);
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 } else if (data.type === "tool_call") {
+                  // Remove typing indicator when tool call is received
+                  if (!firstTokenReceived) {
+                    removeTypingIndicator();
+                    firstTokenReceived = true;
+                  }
+                  
                   currentToolMsgDiv = createMessageElement("", false);
                   messagesContainer.appendChild(currentToolMsgDiv);
                   const content =
@@ -1741,6 +1765,11 @@
                   conversationId = data.id;
                   console.log("Conversation ID:", conversationId);
                 } else if (data.type === "tool_result") {
+                  // Remove typing indicator when tool result is received (if not already removed)
+                  if (!firstTokenReceived) {
+                    removeTypingIndicator();
+                    firstTokenReceived = true;
+                  }
                   if (currentToolMsgDiv) {
                     const content =
                       currentToolMsgDiv.querySelector(".message-content");
@@ -1782,10 +1811,28 @@
                   fetchPanelStatus();
                   fetchActiveTasks();
                 } else if (data.type === "done") {
+                  // Ensure typing indicator is removed when done
+                  if (!firstTokenReceived) {
+                    removeTypingIndicator();
+                    firstTokenReceived = true;
+                  }
+                  
                   if (currentText && voiceToggle.checked)
                     await speakText(currentText);
+                } else if (data.type === "error") {
+                  // Remove typing indicator on error
+                  removeTypingIndicator();
+                  const errDiv = createMessageElement(`Error: ${data.message || "Unknown error"}`, false);
+                  messagesContainer.appendChild(errDiv);
+                  return; // Exit early on error
                 }
-              } catch (e) {}
+              } catch (e) {
+                // If parsing fails, continue but ensure typing indicator is removed
+                if (!firstTokenReceived) {
+                  removeTypingIndicator();
+                  firstTokenReceived = true;
+                }
+              }
             }
           }
         } catch (error) {
@@ -1846,18 +1893,7 @@
         const emoji = statusEmoji[metadata.status] || "📡";
         statusDiv.textContent = `${emoji} ${message}`;
 
-        // TTS Trigger - Announce task status updates
-        // speakText already checks voiceToggle internally
-        if (voiceToggle.checked) {
-          // Provide more explicit messages for task completion
-          let ttsMessage = message;
-          if (metadata.status === "cleaning_done") {
-            ttsMessage = `Task completed. ${message}`;
-          } else if (metadata.status === "returned") {
-            ttsMessage = `Rover returned. ${message}`;
-          }
-          speakText(ttsMessage);
-        }
+        // TTS removed for rover status updates - user will receive update from AI instead
 
         statusDiv.style.cssText = `
           padding: 10px 14px;
@@ -1871,6 +1907,19 @@
 
         messagesContainer.appendChild(statusDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // When rover returns, automatically notify the AI so it can inform the user
+        if (metadata.status === "returned") {
+          const panelId = metadata.panel_id || "unknown";
+          const notificationMessage = `The rover has completed cleaning panel ${panelId} and returned to base station. Please inform the user about the task completion and check if there are any other panels that need cleaning.`;
+          
+          // Small delay to ensure status message is displayed first
+          setTimeout(() => {
+            console.log("[Rover Status] Auto-notifying AI about task completion");
+            // Hide the user message - this is a system-generated notification
+            sendMessageToAPI(notificationMessage, true);
+          }, 500);
+        }
 
         // Immediately refresh active tasks when rover status updates
         fetchActiveTasks();
