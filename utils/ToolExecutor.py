@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from urllib.parse import urljoin
+from utils.ConfigHelper import load_service_config
 
 class ToolExecutor:
     def __init__(self, go_server_base_url: str):
@@ -9,6 +10,10 @@ class ToolExecutor:
         Initializes the ToolExecutor with the base URL of the Go backend server.
         """
         self.base_url = go_server_base_url
+        # Load service URLs from config
+        self.service_config = load_service_config()
+        self.slm_url = self.service_config["slm_url"]
+        self.rover_http_url = self.service_config["rover_http_url"]
 
     def execute_tool(self, tool_name: str, parameters: dict):
         """
@@ -56,8 +61,7 @@ class ToolExecutor:
         
         # Try to get live data from CoordinateServer
         try:
-            slm_url = os.getenv("SLM_URL", "http://localhost:8000")
-            response = requests.get(f"{slm_url}/api/panels/status", timeout=2)
+            response = requests.get(f"{self.slm_url}/api/panels/status", timeout=2)
             
             if response.status_code == 200:
                 data = response.json()
@@ -234,17 +238,14 @@ class ToolExecutor:
         print(f"[ROVER DISPATCH] Task {task_id} -> Cluster {cluster_id}, Panel {panel_id} (Route {route_number})")
         
         # Send command to Rover via HTTP
-        rover_url = os.getenv("ROVER_HTTP_URL", "http://localhost:5001/start_route")
-        slm_url = os.getenv("SLM_URL", "http://localhost:8000")
-        
         rover_command = {
             "route_number": route_number,
             "task_id": task_id,
-            "webhook_url": f"{slm_url}/api/webhook/rover"
+            "webhook_url": f"{self.slm_url}/api/webhook/rover"
         }
         
         try:
-            response = requests.post(rover_url, json=rover_command, timeout=3)
+            response = requests.post(self.rover_http_url, json=rover_command, timeout=3)
             if response.status_code == 200:
                 print(f"[ROVER DISPATCH] ✓ Command sent to Rover successfully")
                 result = response.json()
@@ -252,7 +253,7 @@ class ToolExecutor:
             else:
                 print(f"[ROVER DISPATCH] ⚠ Rover responded with status {response.status_code}")
         except requests.exceptions.ConnectionError:
-            print(f"[ROVER DISPATCH] ⚠ Could not connect to Rover at {rover_url}")
+            print(f"[ROVER DISPATCH] ⚠ Could not connect to Rover at {self.rover_http_url}")
             print(f"[ROVER DISPATCH]   Make sure ROS planner node is running")
         except Exception as e:
             print(f"[ROVER DISPATCH] ⚠ Error: {e}")
@@ -284,8 +285,7 @@ class ToolExecutor:
         print(f"[GET_DASHBOARD] Fetching dashboard status")
         
         try:
-            slm_url = os.getenv("SLM_URL", "http://localhost:8000")
-            response = requests.get(f"{slm_url}/api/dashboard/status", timeout=2)
+            response = requests.get(f"{self.slm_url}/api/dashboard/status", timeout=2)
             
             if response.status_code == 200:
                 data = response.json()

@@ -6,5 +6,11 @@
   "request_options": {
     "temperature": 0.7,
     "max_tokens": 1024
+  },
+
+  "services": {
+    "go_server_url": "http://localhost:8080",
+    "slm_url": "http://localhost:8000",
+    "rover_http_url": "http://localhost:5001/start_route"
   }
 }

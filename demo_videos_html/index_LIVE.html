@@ -124,10 +124,15 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        cursor: pointer;
+        user-select: none;
       }
       .chart-header h3 {
         font-size: 18px;
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .chart-header .date-range {
         font-size: 12px;
@@ -135,6 +140,99 @@
         background: rgba(255, 255, 255, 0.05);
         padding: 6px 12px;
         border-radius: 8px;
+      }
+      .chart-header .collapse-icon {
+        font-size: 14px;
+        transition: transform 0.3s ease;
+        color: #888;
+      }
+      .chart-header.collapsed .collapse-icon {
+        transform: rotate(-90deg);
+      }
+      .chart-container.collapsed > div:not(.chart-header) {
+        display: none;
+      }
+      
+      /* Configure Section Styles */
+      .configure-container {
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        margin-top: 12px;
+      }
+      .configure-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .configure-row:last-child {
+        margin-bottom: 0;
+      }
+      .configure-label {
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 6px;
+      }
+      .configure-input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .configure-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: monospace;
+      }
+      .configure-input:focus {
+        outline: none;
+        border-color: #76ff03;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .configure-btn {
+        background: rgba(118, 255, 3, 0.2);
+        border: 1px solid rgba(118, 255, 3, 0.3);
+        color: #76ff03;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .configure-btn:hover {
+        background: rgba(118, 255, 3, 0.3);
+      }
+      .file-upload-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+      .file-upload-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .configure-status {
+        font-size: 12px;
+        color: #76ff03;
+        margin-top: 8px;
+        padding: 6px 10px;
+        background: rgba(118, 255, 3, 0.1);
+        border-radius: 6px;
+        display: none;
+      }
+      .configure-status.show {
+        display: block;
+      }
+      .configure-status.error {
+        color: #ff5252;
+        background: rgba(255, 82, 82, 0.1);
       }
 
       /* ChatBox */
@@ -1015,9 +1113,9 @@
         </div>
 
         <!-- Test Buttons -->
-        <div class="chart-container">
-          <div class="chart-header"
-            ><h3>Test TTS</h3
+        <div class="chart-container" id="testTTSContainer">
+          <div class="chart-header" id="testTTSHeader"
+            ><h3><span class="collapse-icon">▼</span>Test TTS</h3
             ><span class="date-range">Simulate Task Completion</span></div
           >
           <div class="test-buttons-container">
@@ -1038,6 +1136,50 @@
             >
               🏠 Simulate Returned
             </button>
+          </div>
+        </div>
+
+        <!-- Configure Section -->
+        <div class="chart-container" id="configureContainer">
+          <div class="chart-header" id="configureHeader"
+            ><h3><span class="collapse-icon">▼</span>Configure</h3
+            ><span class="date-range">API Settings</span></div
+          >
+          <div class="configure-container">
+            <div class="configure-row">
+              <div class="configure-label">API Base URL</div>
+              <div class="configure-input-group">
+                <input
+                  type="text"
+                  id="apiUrlInput"
+                  class="configure-input"
+                  placeholder="http://localhost:8000"
+                  value="http://localhost:8000"
+                />
+                <button class="configure-btn" id="applyUrlBtn">Apply</button>
+              </div>
+              <div class="configure-status" id="urlStatus"></div>
+            </div>
+            <div class="configure-row">
+              <div class="configure-label">Upload configure.json</div>
+              <div class="configure-input-group">
+                <div class="file-upload-wrapper">
+                  <input
+                    type="file"
+                    id="configFileInput"
+                    class="file-upload-input"
+                    accept=".json"
+                  />
+                  <button class="configure-btn" onclick="document.getElementById('configFileInput').click()">
+                    Choose File
+                  </button>
+                </div>
+                <button class="configure-btn" id="loadConfigBtn" style="display: none;">
+                  Load Config
+                </button>
+              </div>
+              <div class="configure-status" id="fileStatus"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1240,7 +1382,7 @@
           scales: { y: { beginAtZero: true } },
         },
       });
-      const API_BASE_URL = "http://localhost:8000";
+      let API_BASE_URL = "http://localhost:8000";
       let conversationId = null;
       let isSystemNormal = false;
       let chartUpdateInterval = null;
@@ -2013,6 +2155,118 @@
           .addEventListener("click", () => {
             simulateRoverStatusUpdate("returned", "P-001");
           });
+
+        // --- Collapse Functionality ---
+        function setupCollapse(headerId, containerId) {
+          const header = document.getElementById(headerId);
+          const container = document.getElementById(containerId);
+          
+          header.addEventListener("click", () => {
+            container.classList.toggle("collapsed");
+            header.classList.toggle("collapsed");
+          });
+        }
+        
+        setupCollapse("testTTSHeader", "testTTSContainer");
+        setupCollapse("configureHeader", "configureContainer");
+        
+        // Default: Collapse Configure section
+        document.getElementById("configureContainer").classList.add("collapsed");
+        document.getElementById("configureHeader").classList.add("collapsed");
+
+        // --- Configure Functionality ---
+        let selectedConfigFile = null;
+        
+        // File upload handler
+        document.getElementById("configFileInput").addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file && file.type === "application/json") {
+            selectedConfigFile = file;
+            document.getElementById("loadConfigBtn").style.display = "inline-block";
+            showStatus("fileStatus", `File selected: ${file.name}`, false);
+          } else {
+            showStatus("fileStatus", "Please select a valid JSON file", true);
+          }
+        });
+        
+        // Load config from file
+        document.getElementById("loadConfigBtn").addEventListener("click", () => {
+          if (!selectedConfigFile) {
+            showStatus("fileStatus", "No file selected", true);
+            return;
+          }
+          
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const config = JSON.parse(e.target.result);
+              const slmUrl = config.services?.slm_url;
+              
+              if (slmUrl) {
+                API_BASE_URL = slmUrl;
+                document.getElementById("apiUrlInput").value = slmUrl;
+                showStatus("fileStatus", `Config loaded! API URL: ${slmUrl}`, false);
+                showStatus("urlStatus", `API URL updated to: ${slmUrl}`, false);
+                
+                // Save to localStorage
+                localStorage.setItem("API_BASE_URL", slmUrl);
+              } else {
+                showStatus("fileStatus", "Config file missing 'services.slm_url'", true);
+              }
+            } catch (error) {
+              showStatus("fileStatus", `Invalid JSON: ${error.message}`, true);
+            }
+          };
+          reader.readAsText(selectedConfigFile);
+        });
+        
+        // Apply URL button
+        document.getElementById("applyUrlBtn").addEventListener("click", () => {
+          const url = document.getElementById("apiUrlInput").value.trim();
+          
+          if (!url) {
+            showStatus("urlStatus", "Please enter a URL", true);
+            return;
+          }
+          
+          // Validate URL format
+          try {
+            new URL(url);
+            API_BASE_URL = url;
+            showStatus("urlStatus", `API URL updated to: ${url}`, false);
+            
+            // Save to localStorage
+            localStorage.setItem("API_BASE_URL", url);
+          } catch (error) {
+            showStatus("urlStatus", "Invalid URL format", true);
+          }
+        });
+        
+        // Load saved URL from localStorage on page load
+        const savedUrl = localStorage.getItem("API_BASE_URL");
+        if (savedUrl) {
+          API_BASE_URL = savedUrl;
+          document.getElementById("apiUrlInput").value = savedUrl;
+        }
+        
+        // Helper function to show status messages
+        function showStatus(elementId, message, isError) {
+          const statusEl = document.getElementById(elementId);
+          statusEl.textContent = message;
+          statusEl.className = `configure-status show ${isError ? "error" : ""}`;
+          
+          // Auto-hide after 5 seconds
+          setTimeout(() => {
+            statusEl.classList.remove("show");
+          }, 5000);
+        }
+        
+        // Enter key support for URL input
+        document.getElementById("apiUrlInput").addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            document.getElementById("applyUrlBtn").click();
+          }
+        });
 
         // Initialize charts and tasks
         startChartUpdates();

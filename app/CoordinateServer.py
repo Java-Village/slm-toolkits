@@ -13,11 +13,16 @@ import json
 
 import os
 from dotenv import load_dotenv
+from utils.ConfigHelper import load_service_config
+
 load_dotenv()
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
-GO_SERVER_URL = os.getenv("GO_SERVER_URL")
+
+# Load service URLs from config
+service_config = load_service_config()
+GO_SERVER_URL = service_config["go_server_url"]
 CORS(app)  # TODO: Configure for production and safer access for orginal endpoints from frontend
 
 # --- Rover Task Tracking ---
