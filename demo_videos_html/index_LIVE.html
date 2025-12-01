@@ -152,7 +152,7 @@
       .chart-container.collapsed > div:not(.chart-header) {
         display: none;
       }
-      
+
       /* Configure Section Styles */
       .configure-container {
         padding: 16px;
@@ -1170,11 +1170,18 @@
                     class="file-upload-input"
                     accept=".json"
                   />
-                  <button class="configure-btn" onclick="document.getElementById('configFileInput').click()">
+                  <button
+                    class="configure-btn"
+                    onclick="document.getElementById('configFileInput').click()"
+                  >
                     Choose File
                   </button>
                 </div>
-                <button class="configure-btn" id="loadConfigBtn" style="display: none;">
+                <button
+                  class="configure-btn"
+                  id="loadConfigBtn"
+                  style="display: none"
+                >
                   Load Config
                 </button>
               </div>
@@ -2160,113 +2167,140 @@
         function setupCollapse(headerId, containerId) {
           const header = document.getElementById(headerId);
           const container = document.getElementById(containerId);
-          
+
           header.addEventListener("click", () => {
             container.classList.toggle("collapsed");
             header.classList.toggle("collapsed");
           });
         }
-        
+
         setupCollapse("testTTSHeader", "testTTSContainer");
         setupCollapse("configureHeader", "configureContainer");
-        
+
         // Default: Collapse Configure section
-        document.getElementById("configureContainer").classList.add("collapsed");
+        document
+          .getElementById("configureContainer")
+          .classList.add("collapsed");
         document.getElementById("configureHeader").classList.add("collapsed");
 
         // --- Configure Functionality ---
         let selectedConfigFile = null;
-        
+
         // File upload handler
-        document.getElementById("configFileInput").addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (file && file.type === "application/json") {
-            selectedConfigFile = file;
-            document.getElementById("loadConfigBtn").style.display = "inline-block";
-            showStatus("fileStatus", `File selected: ${file.name}`, false);
-          } else {
-            showStatus("fileStatus", "Please select a valid JSON file", true);
-          }
-        });
-        
-        // Load config from file
-        document.getElementById("loadConfigBtn").addEventListener("click", () => {
-          if (!selectedConfigFile) {
-            showStatus("fileStatus", "No file selected", true);
-            return;
-          }
-          
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const config = JSON.parse(e.target.result);
-              const slmUrl = config.services?.slm_url;
-              
-              if (slmUrl) {
-                API_BASE_URL = slmUrl;
-                document.getElementById("apiUrlInput").value = slmUrl;
-                showStatus("fileStatus", `Config loaded! API URL: ${slmUrl}`, false);
-                showStatus("urlStatus", `API URL updated to: ${slmUrl}`, false);
-                
-                // Save to localStorage
-                localStorage.setItem("API_BASE_URL", slmUrl);
-              } else {
-                showStatus("fileStatus", "Config file missing 'services.slm_url'", true);
-              }
-            } catch (error) {
-              showStatus("fileStatus", `Invalid JSON: ${error.message}`, true);
+        document
+          .getElementById("configFileInput")
+          .addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file && file.type === "application/json") {
+              selectedConfigFile = file;
+              document.getElementById("loadConfigBtn").style.display =
+                "inline-block";
+              showStatus("fileStatus", `File selected: ${file.name}`, false);
+            } else {
+              showStatus("fileStatus", "Please select a valid JSON file", true);
             }
-          };
-          reader.readAsText(selectedConfigFile);
-        });
-        
+          });
+
+        // Load config from file
+        document
+          .getElementById("loadConfigBtn")
+          .addEventListener("click", () => {
+            if (!selectedConfigFile) {
+              showStatus("fileStatus", "No file selected", true);
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const config = JSON.parse(e.target.result);
+                const slmUrl = config.services?.slm_url;
+
+                if (slmUrl) {
+                  API_BASE_URL = slmUrl;
+                  document.getElementById("apiUrlInput").value = slmUrl;
+                  showStatus(
+                    "fileStatus",
+                    `Config loaded! API URL: ${slmUrl}`,
+                    false
+                  );
+                  showStatus(
+                    "urlStatus",
+                    `API URL updated to: ${slmUrl}`,
+                    false
+                  );
+
+                  // Save to localStorage
+                  localStorage.setItem("API_BASE_URL", slmUrl);
+                } else {
+                  showStatus(
+                    "fileStatus",
+                    "Config file missing 'services.slm_url'",
+                    true
+                  );
+                }
+              } catch (error) {
+                showStatus(
+                  "fileStatus",
+                  `Invalid JSON: ${error.message}`,
+                  true
+                );
+              }
+            };
+            reader.readAsText(selectedConfigFile);
+          });
+
         // Apply URL button
         document.getElementById("applyUrlBtn").addEventListener("click", () => {
           const url = document.getElementById("apiUrlInput").value.trim();
-          
+
           if (!url) {
             showStatus("urlStatus", "Please enter a URL", true);
             return;
           }
-          
+
           // Validate URL format
           try {
             new URL(url);
             API_BASE_URL = url;
             showStatus("urlStatus", `API URL updated to: ${url}`, false);
-            
+
             // Save to localStorage
             localStorage.setItem("API_BASE_URL", url);
           } catch (error) {
             showStatus("urlStatus", "Invalid URL format", true);
           }
         });
-        
+
         // Load saved URL from localStorage on page load
         const savedUrl = localStorage.getItem("API_BASE_URL");
         if (savedUrl) {
           API_BASE_URL = savedUrl;
           document.getElementById("apiUrlInput").value = savedUrl;
         }
-        
+
         // Helper function to show status messages
         function showStatus(elementId, message, isError) {
           const statusEl = document.getElementById(elementId);
           statusEl.textContent = message;
-          statusEl.className = `configure-status show ${isError ? "error" : ""}`;
-          
+          statusEl.className = `configure-status show ${
+            isError ? "error" : ""
+          }`;
+
           // Auto-hide after 5 seconds
           setTimeout(() => {
             statusEl.classList.remove("show");
           }, 5000);
         }
-        
+
         // Enter key support for URL input
-        document.getElementById("apiUrlInput").addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            document.getElementById("applyUrlBtn").click();
-          }
-        });
+        document
+          .getElementById("apiUrlInput")
+          .addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+              document.getElementById("applyUrlBtn").click();
+            }
+          });
 
         // Initialize charts and tasks
         startChartUpdates();
